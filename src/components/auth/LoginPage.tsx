@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ChefHat, Moon, Sun, Lock, Mail } from 'lucide-react';
+import LoadingSpinner from '../common/LoadingSpinner';
 
 const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -31,26 +32,33 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDark ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 to-orange-100'
+    <div className={`min-h-screen transition-all duration-500 ${
+      isDark ? 'bg-gray-900' : 'animated-bg'
     }`}>
+      {/* Hero Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gs-gold opacity-20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gs-light-gold opacity-20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full space-y-8">
           {/* Header */}
-          <div className="text-center">
+          <div className="text-center animate-slide-down">
             <div className="flex justify-center mb-4">
-              <div className={`p-4 rounded-full ${
-                isDark ? 'bg-yellow-600' : 'bg-yellow-500'
-              }`}>
-                <ChefHat className="h-12 w-12 text-white" />
+              <div className="relative">
+                <div className={`p-6 rounded-full bg-gradient-to-r from-gs-gold to-gs-light-gold shadow-glow-gold animate-bounce-in`}>
+                  <ChefHat className="h-16 w-16 text-white" />
+                </div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-gs-gold to-gs-light-gold opacity-50 animate-ping"></div>
               </div>
             </div>
-            <h2 className={`text-4xl font-bold ${
+            <h2 className={`text-5xl font-bold gradient-text animate-fade-in ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}>
               GS Restaurant
             </h2>
-            <p className={`mt-2 text-lg ${
+            <p className={`mt-4 text-xl font-medium animate-slide-up ${
               isDark ? 'text-gray-300' : 'text-gray-600'
             }`}>
               Order Management System
@@ -58,12 +66,12 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Login Form */}
-          <div className={`bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl border ${
-            isDark ? 'border-gray-700' : 'border-gray-200'
+          <div className={`glass backdrop-blur-xl p-8 rounded-3xl shadow-2xl border animate-zoom-in ${
+            isDark ? 'border-gray-700 glass-dark' : 'border-white/20'
           }`}>
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded-lg animate-shake">
                   {error}
                 </div>
               )}
@@ -82,11 +90,11 @@ const LoginPage: React.FC = () => {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors ${
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-all duration-300 focus:scale-105 ${
                       isDark 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-500' 
-                        : 'bg-white border-gray-300 text-gray-900 focus:border-yellow-500'
-                    } focus:outline-none focus:ring-2 focus:ring-yellow-500/20`}
+                        ? 'neumorphism-dark border-gray-600 text-white focus:border-gs-gold' 
+                        : 'neumorphism border-gray-300 text-gray-900 focus:border-gs-gold'
+                    } focus:outline-none focus:ring-2 focus:ring-gs-gold/20 focus:shadow-glow-gold`}
                     placeholder="Enter your email"
                     required
                   />
@@ -107,11 +115,11 @@ const LoginPage: React.FC = () => {
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border transition-colors ${
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-all duration-300 focus:scale-105 ${
                       isDark 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-yellow-500' 
-                        : 'bg-white border-gray-300 text-gray-900 focus:border-yellow-500'
-                    } focus:outline-none focus:ring-2 focus:ring-yellow-500/20`}
+                        ? 'neumorphism-dark border-gray-600 text-white focus:border-gs-gold' 
+                        : 'neumorphism border-gray-300 text-gray-900 focus:border-gs-gold'
+                    } focus:outline-none focus:ring-2 focus:ring-gs-gold/20 focus:shadow-glow-gold`}
                     placeholder="Enter your password"
                     required
                   />
@@ -121,15 +129,22 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-gs-gold to-gs-light-gold hover:from-gs-light-gold hover:to-gs-gold text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-gold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <span className="animate-fade-in">Sign In</span>
+                )}
               </button>
             </form>
 
             {/* Demo Credentials */}
-            <div className={`mt-6 p-4 rounded-lg ${
-              isDark ? 'bg-gray-700' : 'bg-gray-50'
+            <div className={`mt-6 p-4 rounded-xl animate-slide-up ${
+              isDark ? 'neumorphism-dark' : 'neumorphism'
             }`}>
               <p className={`text-sm font-medium mb-2 ${
                 isDark ? 'text-gray-300' : 'text-gray-700'
@@ -146,14 +161,14 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Theme Toggle */}
-          <div className="flex justify-center">
+          <div className="flex justify-center animate-fade-in">
             <button
               onClick={toggleTheme}
-              className={`p-3 rounded-full transition-colors ${
+              className={`p-4 rounded-full transition-all duration-300 transform hover:scale-110 hover:rotate-12 ${
                 isDark 
-                  ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
-                  : 'bg-white hover:bg-gray-50 text-gray-600'
-              } shadow-lg`}
+                  ? 'neumorphism-dark text-gs-gold hover:shadow-glow-gold' 
+                  : 'neumorphism text-gray-600 hover:text-gs-gold'
+              } shadow-xl`}
             >
               {isDark ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
             </button>
