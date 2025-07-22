@@ -449,11 +449,11 @@ const OrderTaking: React.FC<OrderTakingProps> = ({ rushHourMode = false }) => {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Enter customer name"
-                  className={`w-full px-3 py-2 rounded-lg border ${
+                  className={`w-full px-3 py-3 rounded-lg border transition-colors ${
                     isDark 
                       ? 'bg-gray-700 border-gray-600 text-white' 
                       : 'bg-white border-gray-300 text-gray-900'
-                  } focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
+                  } focus:ring-2 focus:ring-primary focus:border-transparent`}
                 />
               </div>
 
@@ -505,7 +505,7 @@ const OrderTaking: React.FC<OrderTakingProps> = ({ rushHourMode = false }) => {
               </button>
               <button
                 onClick={handleSubmitOrder}
-                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors"
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
               >
                 Submit Order
               </button>
