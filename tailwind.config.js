@@ -5,12 +5,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        'gs-gold': '#FFC300',
-        'gs-cream': '#FFF5E6',
-        'gs-brown': '#44270A',
-        'gs-dark-brown': '#2D1B06',
-        'gs-light-gold': '#FFD700',
-        'gs-warm-cream': '#FFFBF0',
+        'primary': '#6366F1',
+        'primary-light': '#818CF8',
+        'primary-dark': '#4F46E5',
+        'secondary': '#8B5CF6',
+        'accent': '#06B6D4',
+        'success': '#10B981',
+        'warning': '#F59E0B',
+        'error': '#EF4444',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',

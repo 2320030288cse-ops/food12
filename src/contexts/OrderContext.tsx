@@ -31,6 +31,8 @@ export interface Payment {
   method: 'cash' | 'card' | 'upi' | 'wallet';
   amount: number;
   timestamp: Date;
+  customerPhone?: string;
+  smsStatus?: 'pending' | 'sent' | 'failed';
 }
 
 interface OrderContextType {

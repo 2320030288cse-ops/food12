@@ -136,7 +136,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => handleTabChange('menu')}
-                    className="p-4 bg-gradient-to-r from-gs-gold to-gs-light-gold hover:from-gs-light-gold hover:to-gs-gold text-white rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-gold"
+                    className="p-4 bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary text-white rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-glow-primary"
                   >
                     <UtensilsCrossed className="h-6 w-6 mb-2 animate-float" />
                     <span className="text-sm font-medium">Manage Menu</span>

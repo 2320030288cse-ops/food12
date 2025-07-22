@@ -2,14 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CSS Variables for GS Theme */
+/* CSS Variables for White Theme */
 :root {
-  --gs-gold: #FFC300;
-  --gs-cream: #FFF5E6;
-  --gs-brown: #44270A;
-  --gs-dark-brown: #2D1B06;
-  --gs-light-gold: #FFD700;
-  --gs-warm-cream: #FFFBF0;
+  --primary: #6366F1;
+  --primary-light: #818CF8;
+  --primary-dark: #4F46E5;
+  --secondary: #8B5CF6;
+  --accent: #06B6D4;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --white: #FFFFFF;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
 }
 
 /* Global Styles */
@@ -53,17 +58,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--gray-100);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--gs-gold);
+  background: var(--primary);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--gs-light-gold);
+  background: var(--primary-light);
 }
 
 /* Dark mode scrollbar */
@@ -114,9 +119,9 @@ body {
 
 /* Loading Spinner */
 .spinner {
-  border: 3px solid rgba(255, 195, 0, 0.3);
+  border: 3px solid rgba(99, 102, 241, 0.3);
   border-radius: 50%;
-  border-top: 3px solid var(--gs-gold);
+  border-top: 3px solid var(--primary);
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
@@ -144,7 +149,7 @@ body {
 
 /* Gradient Text */
 .gradient-text {
-  background: linear-gradient(135deg, var(--gs-gold), var(--gs-light-gold));
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -152,7 +157,7 @@ body {
 
 /* Animated Background */
 .animated-bg {
-  background: linear-gradient(-45deg, #FFF5E6, #FFC300, #FFD700, #FFF5E6);
+  background: linear-gradient(-45deg, #FFFFFF, #F9FAFB, #F3F4F6, #FFFFFF);
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }

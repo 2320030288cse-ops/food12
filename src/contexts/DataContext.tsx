@@ -87,6 +87,27 @@ export interface CustomerLoyalty {
   visits: number;
   totalSpent: number;
   lastVisit: Date;
+  preferences?: {
+    favoriteItems: string[];
+    dietaryRestrictions: string[];
+    spiceLevel: 'mild' | 'medium' | 'hot';
+  };
+}
+
+export interface SMSTemplate {
+  id: string;
+  name: string;
+  type: 'order_confirmation' | 'payment_receipt' | 'loyalty_reward' | 'feedback_request';
+  template: string;
+  active: boolean;
+}
+
+export interface NotificationSettings {
+  id: string;
+  smsEnabled: boolean;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  templates: SMSTemplate[];
 }
 interface DataContextType {
   menuItems: MenuItem[];

@@ -218,7 +218,7 @@ const StaffDashboard: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 ${
                   activeTab === tab.id
-                    ? 'bg-gradient-to-r from-gs-gold to-gs-light-gold text-white shadow-glow-gold'
+                    ? 'bg-gradient-to-r from-primary to-primary-light text-white shadow-glow-primary'
                     : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                 }`}
               >

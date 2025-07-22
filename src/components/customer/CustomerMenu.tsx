@@ -107,7 +107,7 @@ const CustomerMenu: React.FC<CustomerMenuProps> = ({ tableId }) => {
 
   return (
     <div className={`min-h-screen transition-colors ${
-      isDark ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 to-orange-100'
+      isDark ? 'bg-gray-900' : 'bg-white'
     }`}>
       {/* Header */}
       <header className={`sticky top-0 z-40 border-b transition-colors ${

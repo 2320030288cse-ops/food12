@@ -64,42 +64,9 @@ const PaymentProcessing: React.FC = () => {
       return;
     }
 
-    // Add payment records
-    paymentMethods.forEach(pm => {
-      addPayment({
-        orderId: selectedOrder.id,
-        method: pm.method as any,
-        amount: pm.amount
-      });
-    });
-
-    // Update order payment status
-    updatePaymentStatus(selectedOrder.id, 'paid');
-
-    // Reset state
-    setSelectedOrder(null);
-    setPaymentMethods([]);
-    setShowSplitPayment(false);
-
-    // Show success notification
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transform transition-all duration-300 ${
-      isDark ? 'bg-green-800 text-green-100' : 'bg-green-100 text-green-800'
-    } border border-green-200`;
-    notification.innerHTML = `
-      <div class="flex items-center space-x-2">
-        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-        </svg>
-        <span class="font-medium">Payment processed successfully! ${selectedOrder.tableNumber ? `Table ${selectedOrder.tableNumber} is now available.` : ''}</span>
-      </div>
-    `;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.style.transform = 'translateX(100%)';
-      setTimeout(() => document.body.removeChild(notification), 300);
-    }, 3000);
+    // Show phone number modal for SMS
+    setShowPhoneModal(true);
+    setSmsMessage(`Thank you for dining at GS Restaurant! Your payment of ₹${totalAmount.toFixed(2)} has been processed successfully. Order #${selectedOrder.id.slice(-6)}. We hope you enjoyed your meal!`);
   };
 
   const getMethodIcon = (methodId: string) => {
@@ -448,6 +415,122 @@ const PaymentProcessing: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Phone Number & SMS Modal */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className={`max-w-md w-full rounded-xl p-6 ${
+            isDark ? 'bg-gray-800' : 'bg-white'
+          } shadow-2xl animate-scale-in`}>
+            <div className="text-center mb-6">
+              <div className="p-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className={`text-xl font-bold mb-2 ${
+                isDark ? 'text-white' : 'text-gray-900'
+              }`}>
+                Send Receipt via SMS
+              </h3>
+              <p className={`text-sm ${
+                isDark ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                Payment successful! Would you like to send a receipt to the customer?
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  Customer Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="+91 9876543210"
+                  className={`w-full px-4 py-3 rounded-lg border text-lg ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:ring-2 focus:ring-primary focus:border-transparent`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${
+                  isDark ? 'text-gray-300' : 'text-gray-700'
+                }`}>
+                  SMS Message Preview
+                </label>
+                <textarea
+                  value={smsMessage}
+                  onChange={(e) => setSmsMessage(e.target.value)}
+                  rows={4}
+                  className={`w-full px-4 py-3 rounded-lg border ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  } focus:ring-2 focus:ring-primary focus:border-transparent`}
+                />
+              </div>
+
+              <div className={`p-4 rounded-lg ${
+                isDark ? 'bg-gray-700' : 'bg-gray-50'
+              }`}>
+                <div className="flex justify-between items-center text-sm">
+                  <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+                    Order Total:
+                  </span>
+                  <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    ₹{selectedOrder?.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleSkipSMS}
+                disabled={sendingSMS}
+                className={`flex-1 px-4 py-3 rounded-lg border font-semibold transition-colors ${
+                  isDark 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                } ${sendingSMS ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Skip SMS
+              </button>
+              <button
+                onClick={handleSendSMS}
+                disabled={!customerPhone.trim() || sendingSMS}
+                className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center space-x-2 ${
+                  !customerPhone.trim() || sendingSMS
+                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                }`}
+              >
+                {sendingSMS ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    <span>Send SMS</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
