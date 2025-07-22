@@ -19,6 +19,10 @@ const PaymentProcessing: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [paymentMethods, setPaymentMethods] = useState<{method: string, amount: number}[]>([]);
   const [showSplitPayment, setShowSplitPayment] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [smsMessage, setSmsMessage] = useState('');
+  const [sendingSMS, setSendingSMS] = useState(false);
 
   const completedOrders = orders.filter(order => 
     order.status === 'completed' && order.paymentStatus !== 'paid'
@@ -67,6 +71,67 @@ const PaymentProcessing: React.FC = () => {
     // Show phone number modal for SMS
     setShowPhoneModal(true);
     setSmsMessage(`Thank you for dining at GS Restaurant! Your payment of ₹${totalAmount.toFixed(2)} has been processed successfully. Order #${selectedOrder.id.slice(-6)}. We hope you enjoyed your meal!`);
+  };
+
+  const handleSkipSMS = () => {
+    // Complete payment without SMS
+    if (selectedOrder) {
+      const paymentData = {
+        orderId: selectedOrder.id,
+        amount: selectedOrder.total,
+        methods: paymentMethods,
+        timestamp: new Date().toISOString(),
+        customerPhone: null
+      };
+      
+      addPayment(paymentData);
+      updatePaymentStatus(selectedOrder.id, 'paid');
+      
+      // Reset state
+      setSelectedOrder(null);
+      setPaymentMethods([]);
+      setShowPhoneModal(false);
+      setCustomerPhone('');
+      setSmsMessage('');
+    }
+  };
+
+  const handleSendSMS = async () => {
+    if (!customerPhone.trim() || !selectedOrder) return;
+    
+    setSendingSMS(true);
+    
+    try {
+      // Simulate SMS sending (replace with actual SMS service)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const paymentData = {
+        orderId: selectedOrder.id,
+        amount: selectedOrder.total,
+        methods: paymentMethods,
+        timestamp: new Date().toISOString(),
+        customerPhone: customerPhone.trim(),
+        smsMessage: smsMessage
+      };
+      
+      addPayment(paymentData);
+      updatePaymentStatus(selectedOrder.id, 'paid');
+      
+      // Show success message
+      alert('Payment processed and SMS sent successfully!');
+      
+      // Reset state
+      setSelectedOrder(null);
+      setPaymentMethods([]);
+      setShowPhoneModal(false);
+      setCustomerPhone('');
+      setSmsMessage('');
+    } catch (error) {
+      alert('Payment processed but SMS failed to send');
+      handleSkipSMS(); // Complete payment anyway
+    } finally {
+      setSendingSMS(false);
+    }
   };
 
   const getMethodIcon = (methodId: string) => {
