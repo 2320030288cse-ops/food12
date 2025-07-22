@@ -16,10 +16,9 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, change
   return (
     <div 
       className={`p-6 rounded-xl border transition-all duration-300 hover:shadow-xl hover:scale-105 animate-fade-in ${
-      isDark 
+        isDark 
           ? 'glass-dark border-gray-700' 
           : 'glass border-white/20'
-      } shadow-xl backdrop-blur-xl hover:shadow-glow-gold`}
       } shadow-xl backdrop-blur-xl hover:shadow-glow-primary`}
       style={{ animationDelay: `${delay}ms` }}
     >
