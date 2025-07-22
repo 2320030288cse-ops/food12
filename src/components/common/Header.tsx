@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { ChefHat, LogOut, Moon, Sun } from 'lucide-react';
+import { LogOut, Moon, Sun } from 'lucide-react';
+import GSLogo from './GSLogo';
 
 interface HeaderProps {
   title: string;
@@ -20,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <ChefHat className="h-8 w-8 text-primary mr-3" />
+            <GSLogo size="md" animated className="mr-3" />
             <div>
               <h1 className={`text-xl font-bold ${
                 isDark ? 'text-white' : 'text-gray-900'

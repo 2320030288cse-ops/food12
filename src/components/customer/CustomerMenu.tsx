@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { useOrder } from '../../contexts/OrderContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import GSLogo from '../common/GSLogo';
 import { 
   Plus, 
   Minus, 
   ShoppingCart, 
   Star, 
   Search,
-  ChefHat,
   Moon,
   Sun,
   Send
@@ -118,7 +118,7 @@ const CustomerMenu: React.FC<CustomerMenuProps> = ({ tableId }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <ChefHat className="h-8 w-8 text-yellow-500 mr-3" />
+              <GSLogo size="md" animated className="mr-3" />
               <div>
                 <h1 className={`text-xl font-bold ${
                   isDark ? 'text-white' : 'text-gray-900'

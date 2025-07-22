@@ -9,6 +9,8 @@ import InventoryManagement from './InventoryManagement';
 import Analytics from './Analytics';
 import ReservationManagement from './ReservationManagement';
 import DailyCollections from './DailyCollections';
+import AIInsights from '../advanced/AIInsights';
+import RealTimeTracking from '../advanced/RealTimeTracking';
 import { useOrder } from '../../contexts/OrderContext';
 import { useData } from '../../contexts/DataContext';
 import { 
@@ -41,6 +43,8 @@ const AdminDashboard: React.FC = () => {
     { id: 'reservations', label: 'Reservations', icon: Calendar },
     { id: 'collections', label: 'Daily Collections', icon: CreditCard },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { id: 'ai-insights', label: 'AI Insights', icon: TrendingUp },
+    { id: 'tracking', label: 'Live Tracking', icon: Users },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -70,6 +74,10 @@ const AdminDashboard: React.FC = () => {
         return <DailyCollections />;
       case 'analytics':
         return <Analytics />;
+      case 'ai-insights':
+        return <AIInsights />;
+      case 'tracking':
+        return <RealTimeTracking />;
       default:
         return (
           <div className="space-y-8">
