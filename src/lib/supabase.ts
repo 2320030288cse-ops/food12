@@ -295,3 +295,4 @@ export interface OrderRecord {
   payment_methods: any[];
   created_at: string;
   completed_at?: string;
+}
