@@ -20,6 +20,7 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color, change
           ? 'glass-dark border-gray-700' 
           : 'glass border-white/20'
       } shadow-xl backdrop-blur-xl hover:shadow-glow-gold`}
+      } shadow-xl backdrop-blur-xl hover:shadow-glow-primary`}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="flex items-center justify-between">

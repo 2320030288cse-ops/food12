@@ -107,7 +107,7 @@ const CustomerMenu: React.FC<CustomerMenuProps> = ({ tableId }) => {
 
   return (
     <div className={`min-h-screen transition-colors ${
-      isDark ? 'bg-gray-900' : 'bg-white'
+      isDark ? 'bg-gray-900' : 'bg-gradient-to-br from-yellow-50 to-orange-100'
     }`}>
       {/* Header */}
       <header className={`sticky top-0 z-40 border-b transition-colors ${
@@ -576,7 +576,7 @@ const CustomerMenu: React.FC<CustomerMenuProps> = ({ tableId }) => {
                 </button>
                 <button
                   onClick={handleFeedbackSubmit}
-                  className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg transition-colors"
+                  className="flex-1 bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-lg transition-colors"
                 >
                   Submit Feedback
                 </button>

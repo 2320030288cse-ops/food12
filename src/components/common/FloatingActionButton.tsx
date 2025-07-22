@@ -64,8 +64,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className={`w-14 h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
           isDark 
-            ? 'bg-gradient-to-r from-gs-gold to-gs-light-gold' 
-            : 'bg-gradient-to-r from-gs-gold to-gs-light-gold'
+            ? 'bg-gradient-to-r from-primary to-primary-light' 
+            : 'bg-gradient-to-r from-primary to-primary-light'
         } text-white flex items-center justify-center animate-float`}
       >
         {isExpanded ? (
