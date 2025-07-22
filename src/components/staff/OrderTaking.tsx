@@ -449,7 +449,7 @@ const OrderTaking: React.FC<OrderTakingProps> = ({ rushHourMode = false }) => {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="Enter customer name"
-                  className={`w-full px-3 py-3 rounded-lg border transition-colors ${
+                  className={`w-full px-3 py-2 rounded-lg border ${
                     isDark 
                       ? 'bg-gray-700 border-gray-600 text-white' 
                       : 'bg-white border-gray-300 text-gray-900'
