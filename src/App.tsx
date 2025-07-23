@@ -1,12 +1,21 @@
 import React from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import RestaurantWebsite from './components/website/RestaurantWebsite';
+import { OrderProvider } from './contexts/OrderContext';
+import AppRouter from './components/AppRouter';
 import './index.css';
 
 function App() {
   return (
     <ThemeProvider>
-      <RestaurantWebsite />
+      <AuthProvider>
+        <DataProvider>
+          <OrderProvider>
+            <AppRouter />
+          </OrderProvider>
+        </DataProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
