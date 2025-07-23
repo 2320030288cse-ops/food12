@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import GSLogo from '../common/GSLogo';
-import AIPersonalization from '../ai/AIPersonalization';
 import OnlineReservation from './OnlineReservation';
 import OnlineOrdering from './OnlineOrdering';
-import Chatbot from '../ai/Chatbot';
+import Chatbot from './Chatbot';
 import SocialFeed from './SocialFeed';
 import { 
   MapPin, 
   Phone, 
   Clock, 
   Star, 
-  Filter,
   Search,
   Heart,
-  Share2,
   Calendar,
   ShoppingBag,
   MessageCircle,
@@ -25,11 +21,13 @@ import {
   ChefHat,
   Award,
   Leaf,
-  Zap
+  Zap,
+  Mail,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const RestaurantWebsite: React.FC = () => {
-  const { menuItems, addReservation } = useData();
   const { isDark, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState('home');
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,41 +35,100 @@ const RestaurantWebsite: React.FC = () => {
   const [showReservation, setShowReservation] = useState(false);
   const [showOrdering, setShowOrdering] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
-  const [personalizedMenu, setPersonalizedMenu] = useState(menuItems);
-  const [userPreferences, setUserPreferences] = useState({
-    dietary: 'all',
-    spiceLevel: 'medium',
-    visitTime: 'dinner',
-    favoriteCategories: []
-  });
 
-  useEffect(() => {
-    // AI-powered menu personalization based on time and preferences
-    const currentHour = new Date().getHours();
-    let timeBasedMenu = menuItems;
-
-    if (currentHour < 12) {
-      // Morning - prioritize breakfast items
-      timeBasedMenu = menuItems.filter(item => 
-        item.category.toLowerCase().includes('breakfast') || 
-        item.category.toLowerCase().includes('beverage')
-      ).concat(menuItems.filter(item => 
-        !item.category.toLowerCase().includes('breakfast')
-      ));
-    } else if (currentHour < 17) {
-      // Afternoon - prioritize lunch items
-      timeBasedMenu = menuItems.filter(item => 
-        item.category.toLowerCase().includes('main') || 
-        item.category.toLowerCase().includes('starter')
-      ).concat(menuItems.filter(item => 
-        !item.category.toLowerCase().includes('main')
-      ));
+  // Sample menu data
+  const menuItems = [
+    {
+      id: '1',
+      name: 'Chicken Tikka Masala',
+      category: 'Main Course',
+      price: 299,
+      available: true,
+      photo: 'https://images.pexels.com/photos/2474658/pexels-photo-2474658.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: true,
+      description: 'Tender chicken in creamy tomato sauce with aromatic spices',
+      dietary_info: ['gluten-free']
+    },
+    {
+      id: '2',
+      name: 'Vegetable Biryani',
+      category: 'Main Course',
+      price: 249,
+      available: true,
+      photo: 'https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Aromatic basmati rice with mixed vegetables and spices',
+      dietary_info: ['vegetarian', 'vegan']
+    },
+    {
+      id: '3',
+      name: 'Samosa',
+      category: 'Starter',
+      price: 49,
+      available: true,
+      photo: 'https://images.pexels.com/photos/14477797/pexels-photo-14477797.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Crispy pastry filled with spiced potatoes and peas',
+      dietary_info: ['vegetarian']
+    },
+    {
+      id: '4',
+      name: 'Gulab Jamun',
+      category: 'Dessert',
+      price: 89,
+      available: true,
+      photo: 'https://images.pexels.com/photos/4772874/pexels-photo-4772874.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Sweet milk balls soaked in sugar syrup',
+      dietary_info: ['vegetarian']
+    },
+    {
+      id: '5',
+      name: 'Butter Chicken',
+      category: 'Main Course',
+      price: 329,
+      available: true,
+      photo: 'https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: true,
+      description: 'Rich and creamy chicken curry with butter and tomatoes',
+      dietary_info: ['gluten-free']
+    },
+    {
+      id: '6',
+      name: 'Paneer Butter Masala',
+      category: 'Main Course',
+      price: 279,
+      available: true,
+      photo: 'https://images.pexels.com/photos/4393021/pexels-photo-4393021.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Cottage cheese in rich tomato and butter gravy',
+      dietary_info: ['vegetarian', 'gluten-free']
+    },
+    {
+      id: '7',
+      name: 'Masala Chai',
+      category: 'Beverage',
+      price: 29,
+      available: true,
+      photo: 'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Traditional spiced tea with milk and aromatic spices',
+      dietary_info: ['vegetarian']
+    },
+    {
+      id: '8',
+      name: 'Fresh Lime Soda',
+      category: 'Beverage',
+      price: 49,
+      available: true,
+      photo: 'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=400',
+      isSpecial: false,
+      description: 'Refreshing lime soda with mint and spices',
+      dietary_info: ['vegetarian', 'vegan']
     }
+  ];
 
-    setPersonalizedMenu(timeBasedMenu);
-  }, [menuItems, userPreferences]);
-
-  const filteredMenu = personalizedMenu.filter(item => {
+  const filteredMenu = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDietary = dietaryFilter === 'all' || 
@@ -169,6 +226,16 @@ const RestaurantWebsite: React.FC = () => {
 
             <div className="flex items-center space-x-4">
               <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${
+                  isDark 
+                    ? 'hover:bg-gray-800 text-gray-400' 
+                    : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+              <button
                 onClick={() => setShowReservation(true)}
                 className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg transition-colors font-medium"
               >
@@ -232,12 +299,6 @@ const RestaurantWebsite: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* AI Personalization Banner */}
-      <AIPersonalization 
-        userPreferences={userPreferences}
-        onPreferencesUpdate={setUserPreferences}
-      />
 
       {/* Menu Section */}
       <section id="menu" className={`py-20 ${
@@ -310,7 +371,7 @@ const RestaurantWebsite: React.FC = () => {
               <h3 className={`text-2xl font-bold mb-8 text-center ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}>
-                <Star className="h-6 w-6 inline mr-2 text-yellow-500" />
+                <Star className="h-6 w-6 inline mr-2 text-primary" />
                 Today's Specials
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -320,11 +381,11 @@ const RestaurantWebsite: React.FC = () => {
                   }`}>
                     <div className="relative overflow-hidden">
                       <img
-                        src={item.photo || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                        src={item.photo}
                         alt={item.name}
                         className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                      <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center space-x-1 animate-pulse">
+                      <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-full text-sm font-semibold flex items-center space-x-1 animate-pulse">
                         <Star className="h-4 w-4 fill-current" />
                         <span>Special</span>
                       </div>
@@ -354,7 +415,7 @@ const RestaurantWebsite: React.FC = () => {
                             </span>
                           )}
                           {item.isSpecial && (
-                            <span className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span className="w-4 h-4 bg-primary rounded-full flex items-center justify-center">
                               <Zap className="h-2 w-2 text-white" />
                             </span>
                           )}
@@ -387,7 +448,7 @@ const RestaurantWebsite: React.FC = () => {
                       } border border-gray-200 dark:border-gray-600`}>
                         <div className="flex items-start space-x-4">
                           <img
-                            src={item.photo || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100'}
+                            src={item.photo}
                             alt={item.name}
                             className="w-16 h-16 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110"
                           />
@@ -415,7 +476,7 @@ const RestaurantWebsite: React.FC = () => {
                                   </span>
                                 )}
                                 {item.isSpecial && (
-                                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                                  <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
                                     Special
                                   </span>
                                 )}
@@ -555,6 +616,19 @@ const RestaurantWebsite: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
+                    <Mail className="h-6 w-6 text-primary mt-1" />
+                    <div>
+                      <h4 className={`font-semibold ${
+                        isDark ? 'text-white' : 'text-gray-900'
+                      }`}>
+                        Email
+                      </h4>
+                      <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {restaurantInfo.email}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-4">
                     <Clock className="h-6 w-6 text-primary mt-1" />
                     <div>
                       <h4 className={`font-semibold ${
@@ -599,15 +673,15 @@ const RestaurantWebsite: React.FC = () => {
               <h3 className={`text-2xl font-bold mb-6 ${
                 isDark ? 'text-white' : 'text-gray-900'
               }`}>
-                Interactive Map
+                Get Directions
               </h3>
               <div className="aspect-video bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center">
                 <div className="text-center">
                   <MapPin className="h-12 w-12 text-primary mx-auto mb-4" />
-                  <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                    Interactive map would be embedded here
+                  <p className={`${isDark ? 'text-gray-300' : 'text-gray-600'} mb-4`}>
+                    Interactive map integration ready
                   </p>
-                  <button className="mt-4 bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg transition-colors">
+                  <button className="bg-primary hover:bg-primary-dark text-white px-6 py-2 rounded-lg transition-colors">
                     Get Directions
                   </button>
                 </div>
@@ -624,7 +698,6 @@ const RestaurantWebsite: React.FC = () => {
       {showReservation && (
         <OnlineReservation
           onClose={() => setShowReservation(false)}
-          onReservationSubmit={addReservation}
         />
       )}
 

@@ -4,12 +4,10 @@ import { Calendar, Clock, Users, X, CheckCircle } from 'lucide-react';
 
 interface OnlineReservationProps {
   onClose: () => void;
-  onReservationSubmit: (reservation: any) => void;
 }
 
 const OnlineReservation: React.FC<OnlineReservationProps> = ({
-  onClose,
-  onReservationSubmit
+  onClose
 }) => {
   const { isDark } = useTheme();
   const [step, setStep] = useState(1);
@@ -45,7 +43,8 @@ const OnlineReservation: React.FC<OnlineReservationProps> = ({
         status: 'pending'
       };
       
-      onReservationSubmit(reservation);
+      // In a real app, this would save to database
+      console.log('Reservation submitted:', reservation);
       setIsSuccess(true);
       
       setTimeout(() => {
