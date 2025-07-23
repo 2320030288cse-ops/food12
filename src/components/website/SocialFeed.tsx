@@ -41,7 +41,7 @@ const SocialFeed: React.FC = () => {
       username: 'gsrestaurant',
       timestamp: '2 days ago'
     }
-  ];
+  ]);
 
   const [reviews] = useState([
     {
