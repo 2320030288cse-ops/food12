@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, safeSupabaseOperation } from '../lib/supabase';
 
 export interface MenuItem {
   id: string;
@@ -431,21 +431,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [menuItems, inventory, tables, reservations, feedback, dailyCollections, recipes, combos, promotions, customerLoyalty]);
 
   const loadDailyCollections = async () => {
-    try {
-      if (!supabase) {
-        console.log('Supabase not configured, using local storage');
-        return;
-      }
-      const { data, error } = await supabase
-        .from('daily_collections')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(30);
-      
-      if (error) throw error;
-      if (data) setDailyCollections(data);
-    } catch (error) {
-      console.log('Using local storage for daily collections');
+    const data = await safeSupabaseOperation(
+      async () => {
+        const { data, error } = await supabase!
+          .from('daily_collections')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(30);
+        
+        if (error) throw error;
+        return data || [];
+      },
+      [] // fallback to empty array
+    );
+    
+    if (data.length > 0) {
+      setDailyCollections(data);
     }
   };
   const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
@@ -610,22 +611,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       .slice(0, 8);
   };
   const getDailyCollections = async (): Promise<DailyCollection[]> => {
-    try {
-      if (!supabase) {
-        console.log('Supabase not configured, using local storage');
-        return dailyCollections;
-      }
-      const { data, error } = await supabase
-        .from('daily_collections')
-        .select('*')
-        .order('date', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.log('Using local storage for daily collections');
-      return dailyCollections;
-    }
+    return await safeSupabaseOperation(
+      async () => {
+        const { data, error } = await supabase!
+          .from('daily_collections')
+          .select('*')
+          .order('date', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+      },
+      dailyCollections // fallback to current state
+    );
   };
   const releaseTableAfterPayment = (tableId: string) => {
     setTables(prev => prev.map(t => 
@@ -640,88 +637,55 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ));
   };
   const updateDailyCollection = async (date: string, amount: number, paymentMethods: Record<string, number>) => {
-    try {
-      if (!supabase) {
-        console.log('Supabase not configured, using local storage fallback');
-        // Fallback to local storage logic
-        const today = new Date().toISOString().split('T')[0];
-        setDailyCollections(prev => {
-          const existing = prev.find(dc => dc.date === date);
-          if (existing) {
-            const updatedPaymentMethods = { ...existing.payment_methods };
-            Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
-              updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
-            });
-            
-            return prev.map(dc => 
-              dc.date === date 
-                ? {
-                    ...dc,
-                    total_amount: dc.total_amount + amount,
-                    total_orders: dc.total_orders + 1,
-                    payment_methods: updatedPaymentMethods,
-                    updated_at: new Date().toISOString()
-                  }
-                : dc
-            );
-          } else {
-            return [...prev, {
-              id: Date.now().toString(),
+    const success = await safeSupabaseOperation(
+      async () => {
+        const { data: existing, error: fetchError } = await supabase!
+          .from('daily_collections')
+          .select('*')
+          .eq('date', date)
+          .single();
+        
+        if (existing) {
+          // Update existing record
+          const updatedPaymentMethods = { ...existing.payment_methods };
+          Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
+            updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
+          });
+
+          const { error: updateError } = await supabase!
+            .from('daily_collections')
+            .update({
+              total_amount: existing.total_amount + amount,
+              total_orders: existing.total_orders + 1,
+              payment_methods: updatedPaymentMethods,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+          if (updateError) throw updateError;
+        } else {
+          // Create new record
+          const { error: insertError } = await supabase!
+            .from('daily_collections')
+            .insert({
               date,
               total_amount: amount,
               total_orders: 1,
               payment_methods: paymentMethods,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-            }];
-          }
-        });
-        return;
-      }
-      
-      const { data: existing, error: fetchError } = await supabase
-        .from('daily_collections')
-        .select('*')
-        .eq('date', date)
-        .single();
-      if (existing) {
-        // Update existing record
-        const updatedPaymentMethods = { ...existing.payment_methods };
-        Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
-          updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
-        });
-
-        const { error: updateError } = await supabase
-          .from('daily_collections')
-          .update({
-            total_amount: existing.total_amount + amount,
-            total_orders: existing.total_orders + 1,
-            payment_methods: updatedPaymentMethods,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id);
-        if (updateError) throw updateError;
-      } else {
-        // Create new record
-        const { error: insertError } = await supabase
-          .from('daily_collections')
-          .insert({
-            date,
-            total_amount: amount,
-            total_orders: 1,
-            payment_methods: paymentMethods,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        if (insertError) throw insertError;
-      }
-      // Refresh local data
-      await loadDailyCollections();
-    } catch (error) {
-      console.log('Using local storage for daily collections');
-      
-      // Fallback to local storage
-      const today = new Date().toISOString().split('T')[0];
+            });
+          if (insertError) throw insertError;
+        }
+        
+        // Refresh local data
+        await loadDailyCollections();
+        return true;
+      },
+      false // fallback to false (operation failed)
+    );
+    
+    // If Supabase operation failed, use local storage fallback
+    if (!success) {
       setDailyCollections(prev => {
         const existing = prev.find(dc => dc.date === date);
         if (existing) {
@@ -751,6 +715,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }];
+        }
+      });
+    }
+  };
         }
       });
     }

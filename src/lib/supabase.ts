@@ -9,6 +9,29 @@ export const supabase = supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+// Helper function to check if Supabase is available
+export const isSupabaseAvailable = () => {
+  return supabase !== null;
+};
+
+// Helper function to safely execute Supabase operations
+export const safeSupabaseOperation = async <T>(
+  operation: () => Promise<T>,
+  fallback: T
+): Promise<T> => {
+  if (!supabase) {
+    console.warn('Supabase not configured, using fallback');
+    return fallback;
+  }
+  
+  try {
+    return await operation();
+  } catch (error) {
+    console.warn('Supabase operation failed, using fallback:', error);
+    return fallback;
+  }
+};
+
 // Enhanced Database Types
 export interface Restaurant {
   id: string;
