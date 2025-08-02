@@ -236,7 +236,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const loadDailyCollections = async () => {
     try {
       // Try to load from database first, fallback to local storage
-      const collections = await DatabaseService.getDailyCollections();
+      const dbService = DatabaseService.getInstance();
+      const collections = await dbService.getDailyCollections();
       if (collections && collections.length > 0) {
         setDailyCollections(collections);
       } else {

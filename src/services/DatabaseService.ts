@@ -527,6 +527,19 @@ export class DatabaseService {
     return `GS${timestamp}${random}`;
   }
 
+  // Daily Collections Management
+  async getDailyCollections(): Promise<any[]> {
+    if (!supabase || !this.restaurantId) return [];
+    
+    const { data, error } = await supabase
+      .from('daily_collections')
+      .select('*')
+      .order('date', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
   async generateQRCode(tableId: string): Promise<string> {
     // Generate QR code URL for table
     const baseUrl = window.location.origin;
