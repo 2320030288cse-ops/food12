@@ -109,7 +109,7 @@ Status: ${bill.paymentStatus.toUpperCase()}
   };
 
   const saveBillToDatabase = async (order: any) => {
-    if (!supabase || !user) {
+    if (!supabase) {
       alert('Database not available or user not authenticated');
       return;
     }
@@ -117,55 +117,22 @@ Status: ${bill.paymentStatus.toUpperCase()}
     setSavingBill(true);
     try {
       const bill = generateBill(order);
+      const dbService = DatabaseService.getInstance();
       
-      // Generate bill number
-      const { data: billNumberData, error: billNumberError } = await supabase
-        .rpc('generate_bill_number');
+      const billNumber = await dbService.saveBill({
+        orderId: order.id,
+        customerName: bill.customerName,
+        customerPhone: bill.customerPhone,
+        tableNumber: bill.tableNumber,
+        subtotal: bill.subtotal,
+        tax: bill.tax,
+        total: bill.total,
+        paymentMethod: bill.payments[0]?.method || 'cash',
+        paymentStatus: bill.paymentStatus,
+        items: bill.items
+      });
       
-      if (billNumberError) throw billNumberError;
-      
-      // Create bill record
-      const { data: billData, error: billError } = await supabase
-        .from('bills')
-        .insert({
-          bill_number: billNumberData,
-          order_id: order.id,
-          customer_name: bill.customerName,
-          table_number: bill.tableNumber,
-          subtotal: bill.subtotal,
-          tax_amount: bill.tax,
-          total_amount: bill.total,
-          payment_method: bill.payments[0]?.method || 'cash',
-          payment_status: bill.paymentStatus,
-          created_by: user.id
-        })
-        .select()
-        .single();
-      
-      if (billError) throw billError;
-      
-      // Create bill items
-      const billItems = bill.items.map((item: any) => ({
-        bill_id: billData.id,
-        item_name: item.name,
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.subtotal
-      }));
-      
-      const { error: itemsError } = await supabase
-        .from('bill_items')
-        .insert(billItems);
-      
-      if (itemsError) throw itemsError;
-      
-      // Update bill as printed
-      await supabase
-        .from('bills')
-        .update({ printed_at: new Date().toISOString() })
-        .eq('id', billData.id);
-      
-      alert(`Bill ${billNumberData} saved successfully!`);
+      alert(`Bill ${billNumber} saved successfully!`);
     } catch (error) {
       console.error('Error saving bill:', error);
       alert('Failed to save bill to database');

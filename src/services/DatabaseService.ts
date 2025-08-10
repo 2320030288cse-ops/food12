@@ -529,17 +529,139 @@ export class DatabaseService {
 
   // Daily Collections Management
   async getDailyCollections(): Promise<any[]> {
-    if (!supabase || !this.restaurantId) return [];
+    if (!supabase) return [];
     
     const { data, error } = await supabase
       .from('daily_collections')
-      .select('*')
+      .select(`
+        id,
+        date,
+        total_amount,
+        total_orders,
+        payment_methods,
+        bills_generated,
+        created_at,
+        updated_at
+      `)
       .order('date', { ascending: false });
     
     if (error) throw error;
     return data || [];
   }
 
+  async updateDailyCollection(date: string, amount: number, paymentMethod: string): Promise<void> {
+    if (!supabase) return;
+    
+    try {
+      // First, try to get existing record
+      const { data: existing, error: fetchError } = await supabase
+        .from('daily_collections')
+        .select('*')
+        .eq('date', date)
+        .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+      
+      if (existing) {
+        // Update existing record
+        const updatedPaymentMethods = { ...existing.payment_methods };
+        updatedPaymentMethods[paymentMethod] = (updatedPaymentMethods[paymentMethod] || 0) + amount;
+        
+        const { error: updateError } = await supabase
+          .from('daily_collections')
+          .update({
+            total_amount: existing.total_amount + amount,
+            total_orders: existing.total_orders + 1,
+            payment_methods: updatedPaymentMethods
+          })
+          .eq('date', date);
+        
+        if (updateError) throw updateError;
+      } else {
+        // Create new record
+        const paymentMethods = {
+          cash: paymentMethod === 'cash' ? amount : 0,
+          card: paymentMethod === 'card' ? amount : 0,
+          upi: paymentMethod === 'upi' ? amount : 0,
+          wallet: paymentMethod === 'wallet' ? amount : 0
+        };
+        
+        const { error: insertError } = await supabase
+          .from('daily_collections')
+          .insert({
+            date,
+            total_amount: amount,
+            total_orders: 1,
+            payment_methods: paymentMethods,
+            bills_generated: 1
+          });
+        
+        if (insertError) throw insertError;
+      }
+    } catch (error) {
+      console.error('Error updating daily collection:', error);
+      throw error;
+    }
+  async saveBill(billData: any): Promise<string> {
+    if (!supabase) throw new Error('Database not available');
+    
+    try {
+      // Generate bill number
+      const { data: billNumber, error: billNumberError } = await supabase
+        .rpc('generate_bill_number');
+      
+      if (billNumberError) throw billNumberError;
+      
+      // Create bill record
+      const { data: bill, error: billError } = await supabase
+        .from('bills')
+        .insert({
+          bill_number: billNumber,
+          order_id: billData.orderId,
+          customer_name: billData.customerName,
+          customer_phone: billData.customerPhone,
+          table_number: billData.tableNumber,
+          subtotal: billData.subtotal,
+          tax_amount: billData.tax,
+          total_amount: billData.total,
+          payment_method: billData.paymentMethod || 'cash',
+          payment_status: billData.paymentStatus || 'paid'
+        })
+        .select()
+        .single();
+      
+      if (billError) throw billError;
+      
+      // Create bill items
+      if (billData.items && billData.items.length > 0) {
+        const billItems = billData.items.map((item: any) => ({
+          bill_id: bill.id,
+          item_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.subtotal
+        }));
+        
+        const { error: itemsError } = await supabase
+          .from('bill_items')
+          .insert(billItems);
+        
+        if (itemsError) throw itemsError;
+      }
+      
+      // Update daily collection
+      const today = new Date().toISOString().split('T')[0];
+      await this.updateDailyCollection(today, billData.total, billData.paymentMethod || 'cash');
+      
+      return billNumber;
+    } catch (error) {
+      console.error('Error saving bill:', error);
+      throw error;
+    }
+  }
+  }
   async generateQRCode(tableId: string): Promise<string> {
     // Generate QR code URL for table
     const baseUrl = window.location.origin;
