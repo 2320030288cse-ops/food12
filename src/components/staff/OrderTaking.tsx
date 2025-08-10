@@ -32,7 +32,7 @@ const OrderTaking: React.FC<OrderTakingProps> = ({ rushHourMode = false }) => {
 
   const categories = ['all', ...new Set(menuItems.map(item => item.category))];
   const availableTables = tables.filter(table => table.status === 'available');
-  const specialItems = menuItems.filter(item => item.is_special && item.available);
+
   let filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());

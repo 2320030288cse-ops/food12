@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from './AuthContext';
+import { DatabaseService } from '../services/DatabaseService';
 
 // Types
 export interface MenuItem {
@@ -9,21 +8,17 @@ export interface MenuItem {
   price: number;
   category: string;
   description?: string;
-  image_url?: string;
+  image?: string;
   available: boolean;
-  is_special?: boolean;
-  preparation_time?: number;
+  preparationTime?: number;
+  ingredients?: string[];
   allergens?: string[];
-  dietary_info?: string[];
-  nutrition_info?: {
+  nutritionInfo?: {
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
   };
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface InventoryItem {
@@ -129,7 +124,6 @@ interface DataProviderProps {
 }
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const { user } = useAuth();
   // State
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -147,8 +141,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      await loadMenuItems();
-      await loadSampleData(); // For other data
+      // Load sample data if database is not available
+      await loadSampleData();
       await loadDailyCollections();
     } catch (err) {
       setError('Failed to load initial data');
@@ -158,70 +152,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  const loadMenuItems = async () => {
-    if (!supabase) {
-      // Load sample menu items for demo
-      await loadSampleMenuItems();
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select(`
-          id,
-          name,
-          description,
-          category,
-          price,
-          cost_price,
-          image_url,
-          is_available,
-          is_special,
-          preparation_time,
-          calories,
-          allergens,
-          dietary_info,
-          created_by,
-          created_at,
-          updated_at
-        `)
-        .order('category', { ascending: true });
-
-      if (error) throw error;
-      
-      const formattedItems = data?.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        category: item.category,
-        description: item.description,
-        image_url: item.image_url,
-        available: item.is_available,
-        is_special: item.is_special,
-        preparation_time: item.preparation_time,
-        allergens: item.allergens || [],
-        dietary_info: item.dietary_info || [],
-        nutrition_info: item.calories ? {
-          calories: item.calories,
-          protein: 0,
-          carbs: 0,
-          fat: 0
-        } : undefined,
-        created_by: item.created_by,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      })) || [];
-      
-      setMenuItems(formattedItems);
-    } catch (error) {
-      console.error('Error loading menu items:', error);
-      // Fallback to sample data
-      await loadSampleMenuItems();
-    }
-  };
-
-  const loadSampleMenuItems = async () => {
+  const loadSampleData = async () => {
+    // Sample menu items
     const sampleMenuItems: MenuItem[] = [
       {
         id: '1',
@@ -230,9 +162,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         category: 'Main Course',
         description: 'Creamy tomato-based curry with tender chicken',
         available: true,
-        is_special: false,
-        preparation_time: 25,
-        allergens: ['dairy']
+        preparationTime: 25,
+        ingredients: ['chicken', 'tomato', 'cream', 'spices'],
+        allergens: ['dairy'],
+        nutritionInfo: { calories: 450, protein: 35, carbs: 15, fat: 28 }
       },
       {
         id: '2',
@@ -241,20 +174,30 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         category: 'Appetizer',
         description: 'Grilled cottage cheese with aromatic spices',
         available: true,
-        is_special: true,
-        preparation_time: 15,
-        allergens: ['dairy']
+        preparationTime: 15,
+        ingredients: ['paneer', 'yogurt', 'spices'],
+        allergens: ['dairy'],
+        nutritionInfo: { calories: 320, protein: 18, carbs: 12, fat: 22 }
+      },
+      {
+        id: '3',
+        name: 'Biryani',
+        price: 350,
+        category: 'Main Course',
+        description: 'Fragrant basmati rice with spiced meat',
+        available: true,
+        preparationTime: 35,
+        ingredients: ['basmati rice', 'chicken', 'saffron', 'spices'],
+        allergens: [],
+        nutritionInfo: { calories: 520, protein: 28, carbs: 65, fat: 18 }
       }
     ];
-    setMenuItems(sampleMenuItems);
-  };
 
-  const loadSampleData = async () => {
     // Sample inventory
     const sampleInventory: InventoryItem[] = [
       {
         id: '1',
-        name: 'Basmati Rice', 
+        name: 'Basmati Rice',
         quantity: 50,
         unit: 'kg',
         minThreshold: 10,
@@ -285,57 +228,17 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       { id: '4', number: 4, capacity: 4, status: 'cleaning', location: 'Main Hall' }
     ];
 
+    setMenuItems(sampleMenuItems);
     setInventory(sampleInventory);
     setTables(sampleTables);
   };
 
   const loadDailyCollections = async () => {
     try {
-      if (!supabase) {
-        // Load sample daily collections for demo
-        const today = new Date().toISOString().split('T')[0];
-        const sampleCollections: DailyCollection[] = [
-          {
-            id: '1',
-            date: today,
-            totalAmount: 15420,
-            totalOrders: 45,
-            paymentMethods: { cash: 5420, card: 6000, upi: 4000, other: 0 },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-        setDailyCollections(sampleCollections);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('daily_collections')
-        .select(`
-          id,
-          date,
-          total_amount,
-          total_orders,
-          payment_methods,
-          bills_generated,
-          created_at,
-          updated_at
-        `)
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const formattedCollections = data.map(item => ({
-          id: item.id,
-          date: item.date,
-          totalAmount: item.total_amount,
-          totalOrders: item.total_orders,
-          paymentMethods: item.payment_methods || { cash: 0, card: 0, upi: 0, other: 0 },
-          createdAt: item.created_at,
-          updatedAt: item.updated_at
-        }));
-        setDailyCollections(formattedCollections);
+      // Try to load from database first, fallback to local storage
+      const collections = await DatabaseService.getDailyCollections();
+      if (collections && collections.length > 0) {
+        setDailyCollections(collections);
       } else {
         // Load sample daily collections
         const today = new Date().toISOString().split('T')[0];
@@ -362,72 +265,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Menu Items functions
   const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        const newItem: MenuItem = {
-          ...item,
-          id: Date.now().toString()
-        };
-        setMenuItems(prev => [...prev, newItem]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('menu_items')
-        .insert({
-          name: item.name,
-          description: item.description,
-          category: item.category,
-          price: item.price,
-          image_url: item.image_url,
-          is_available: item.available,
-          is_special: item.is_special || false,
-          preparation_time: item.preparation_time || 15,
-          allergens: item.allergens || [],
-          dietary_info: item.dietary_info || [],
-          calories: item.nutrition_info?.calories,
-          created_by: user?.id
-        })
-        .select(`
-          id,
-          name,
-          description,
-          category,
-          price,
-          cost_price,
-          image_url,
-          is_available,
-          is_special,
-          preparation_time,
-          calories,
-          allergens,
-          dietary_info,
-          created_by,
-          created_at,
-          updated_at
-        `)
-        .single();
-
-      if (error) throw error;
-      
-      const formattedItem: MenuItem = {
-        id: data.id,
-        name: data.name,
-        price: data.price,
-        category: data.category,
-        description: data.description,
-        image_url: data.image_url,
-        available: data.is_available,
-        is_special: data.is_special,
-        preparation_time: data.preparation_time,
-        allergens: data.allergens || [],
-        dietary_info: data.dietary_info || [],
-        created_by: data.created_by,
-        created_at: data.created_at,
-        updated_at: data.updated_at
+      const newItem: MenuItem = {
+        ...item,
+        id: Date.now().toString()
       };
-      
-      setMenuItems(prev => [...prev, formattedItem]);
+      setMenuItems(prev => [...prev, newItem]);
     } catch (error) {
       setError('Failed to add menu item');
       throw error;
@@ -436,71 +278,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        setMenuItems(prev => prev.map(item => 
-          item.id === id ? { ...item, ...updates } : item
-        ));
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('menu_items')
-        .update({
-          name: updates.name,
-          description: updates.description,
-          category: updates.category,
-          price: updates.price,
-          image_url: updates.image_url,
-          is_available: updates.available,
-          is_special: updates.is_special,
-          preparation_time: updates.preparation_time,
-          allergens: updates.allergens,
-          dietary_info: updates.dietary_info,
-          calories: updates.nutrition_info?.calories
-        })
-        .eq('id', id)
-        .select(`
-          id,
-          name,
-          description,
-          category,
-          price,
-          cost_price,
-          image_url,
-          is_available,
-          is_special,
-          preparation_time,
-          calories,
-          allergens,
-          dietary_info,
-          created_by,
-          created_at,
-          updated_at
-        `)
-        .single();
-
-      if (error) throw error;
-      
-      const formattedItem: MenuItem = {
-        id: data.id,
-        name: data.name,
-        price: data.price,
-        category: data.category,
-        description: data.description,
-        image_url: data.image_url,
-        available: data.is_available,
-        is_special: data.is_special,
-        preparation_time: data.preparation_time,
-        allergens: data.allergens || [],
-        dietary_info: data.dietary_info || [],
-        created_by: data.created_by,
-        created_at: data.created_at,
-        updated_at: data.updated_at
-      };
-      
       setMenuItems(prev => prev.map(item => 
-        item.id === id ? formattedItem : item
+        item.id === id ? { ...item, ...updates } : item
       ));
     } catch (error) {
       setError('Failed to update menu item');
@@ -510,19 +289,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const deleteMenuItem = async (id: string) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        setMenuItems(prev => prev.filter(item => item.id !== id));
-        return;
-      }
-
-      const { error } = await supabase
-        .from('menu_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
       setMenuItems(prev => prev.filter(item => item.id !== id));
     } catch (error) {
       setError('Failed to delete menu item');
@@ -533,46 +299,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Inventory functions
   const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        const newItem: InventoryItem = {
-          ...item,
-          id: Date.now().toString(),
-          lastUpdated: new Date().toISOString()
-        };
-        setInventory(prev => [...prev, newItem]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .insert({
-          name: item.name,
-          category: item.category || 'General',
-          unit: item.unit,
-          current_stock: item.quantity,
-          minimum_stock: item.minThreshold,
-          maximum_stock: item.maxThreshold,
-          cost_per_unit: item.cost,
-          supplier: item.supplier
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
       const newItem: InventoryItem = {
-        id: data.id,
-        name: data.name,
-        quantity: data.current_stock,
-        unit: data.unit,
-        minThreshold: data.minimum_stock,
-        maxThreshold: data.maximum_stock || 0,
-        cost: data.cost_per_unit || 0,
-        supplier: data.supplier,
+        ...item,
+        id: Date.now().toString(),
         lastUpdated: new Date().toISOString()
       };
-      
       setInventory(prev => [...prev, newItem]);
     } catch (error) {
       setError('Failed to add inventory item');
@@ -582,43 +313,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const updateInventoryItem = async (id: string, updates: Partial<InventoryItem>) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        setInventory(prev => prev.map(item => 
-          item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
-        ));
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .update({
-          name: updates.name,
-          unit: updates.unit,
-          current_stock: updates.quantity,
-          minimum_stock: updates.minThreshold,
-          maximum_stock: updates.maxThreshold,
-          cost_per_unit: updates.cost,
-          supplier: updates.supplier
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      
       setInventory(prev => prev.map(item => 
-        item.id === id ? {
-          ...item,
-          name: data.name,
-          quantity: data.current_stock,
-          unit: data.unit,
-          minThreshold: data.minimum_stock,
-          maxThreshold: data.maximum_stock || 0,
-          cost: data.cost_per_unit || 0,
-          supplier: data.supplier,
-          lastUpdated: new Date().toISOString()
-        } : item
+        item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
       ));
     } catch (error) {
       setError('Failed to update inventory item');
@@ -628,19 +324,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const deleteInventoryItem = async (id: string) => {
     try {
-      if (!supabase) {
-        // Demo mode
-        setInventory(prev => prev.filter(item => item.id !== id));
-        return;
-      }
-
-      const { error } = await supabase
-        .from('inventory_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
       setInventory(prev => prev.filter(item => item.id !== id));
     } catch (error) {
       setError('Failed to delete inventory item');

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useOrder } from '../../contexts/OrderContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { supabase } from '../../lib/supabase';
 import { 
   Receipt, 
   Download, 
@@ -12,17 +10,14 @@ import {
   Clock,
   Search,
   FileText,
-  CheckCircle,
-  Save
+  CheckCircle
 } from 'lucide-react';
 
 const BillGeneration: React.FC = () => {
   const { orders, payments } = useOrder();
-  const { user } = useAuth();
   const { isDark } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [savingBill, setSavingBill] = useState(false);
 
   const completedOrders = orders.filter(order => order.status === 'completed');
   
@@ -108,38 +103,6 @@ Status: ${bill.paymentStatus.toUpperCase()}
     URL.revokeObjectURL(url);
   };
 
-  const saveBillToDatabase = async (order: any) => {
-    if (!supabase) {
-      alert('Database not available or user not authenticated');
-      return;
-    }
-
-    setSavingBill(true);
-    try {
-      const bill = generateBill(order);
-      const dbService = DatabaseService.getInstance();
-      
-      const billNumber = await dbService.saveBill({
-        orderId: order.id,
-        customerName: bill.customerName,
-        customerPhone: bill.customerPhone,
-        tableNumber: bill.tableNumber,
-        subtotal: bill.subtotal,
-        tax: bill.tax,
-        total: bill.total,
-        paymentMethod: bill.payments[0]?.method || 'cash',
-        paymentStatus: bill.paymentStatus,
-        items: bill.items
-      });
-      
-      alert(`Bill ${billNumber} saved successfully!`);
-    } catch (error) {
-      console.error('Error saving bill:', error);
-      alert('Failed to save bill to database');
-    } finally {
-      setSavingBill(false);
-    }
-  };
   const printBill = (order: any) => {
     const bill = generateBill(order);
     const printContent = `
@@ -483,19 +446,6 @@ Status: ${bill.paymentStatus.toUpperCase()}
                   >
                     <Printer className="h-5 w-5" />
                     <span>Print</span>
-                  </button>
-                  <button
-                    onClick={() => saveBillToDatabase(selectedOrder)}
-                    disabled={savingBill}
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50"
-                    title="Save to Database"
-                  >
-                    {savingBill ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    ) : (
-                      <Save className="h-5 w-5" />
-                    )}
-                    <span>{savingBill ? 'Saving...' : 'Save'}</span>
                   </button>
                   <button
                     onClick={() => downloadBill(selectedOrder)}

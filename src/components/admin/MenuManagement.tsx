@@ -61,9 +61,9 @@ const MenuManagement: React.FC = () => {
       category: item.category,
       price: item.price.toString(),
       description: item.description || '',
-      photo: item.image_url || '',
+      photo: item.photo || '',
       available: item.available,
-      isSpecial: item.is_special || false
+      isSpecial: item.isSpecial
     });
     setIsModalOpen(true);
   };
@@ -143,11 +143,10 @@ const MenuManagement: React.FC = () => {
             <div className="relative">
               <img
                 src={item.photo || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400'}
-                src={item.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400'}
                 alt={item.name}
                 className="w-full h-48 object-cover"
               />
-              {item.is_special && (
+              {item.isSpecial && (
                 <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center space-x-1">
                   <Star className="h-3 w-3 fill-current" />
                   <span>Special</span>
