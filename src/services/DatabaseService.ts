@@ -527,6 +527,47 @@ export class DatabaseService {
     return `GS${timestamp}${random}`;
   }
 
+  // Daily Collections Management
+  async getDailyCollections(): Promise<any[]> {
+    if (!supabase || !this.restaurantId) return [];
+    
+    const { data, error } = await supabase
+      .from('daily_collections')
+      .select('*')
+      .eq('restaurant_id', this.restaurantId)
+      .order('date', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createDailyCollection(collection: any): Promise<any | null> {
+    if (!supabase || !this.restaurantId) return null;
+    
+    const { data, error } = await supabase
+      .from('daily_collections')
+      .insert({ ...collection, restaurant_id: this.restaurantId })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async updateDailyCollection(id: string, updates: any): Promise<any | null> {
+    if (!supabase) return null;
+    
+    const { data, error } = await supabase
+      .from('daily_collections')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
   async generateQRCode(tableId: string): Promise<string> {
     // Generate QR code URL for table
     const baseUrl = window.location.origin;

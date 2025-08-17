@@ -236,9 +236,19 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const loadDailyCollections = async () => {
     try {
       // Try to load from database first, fallback to local storage
-      const collections = await DatabaseService.getDailyCollections();
+      const collections = await dbService.getDailyCollections();
       if (collections && collections.length > 0) {
-        setDailyCollections(collections);
+        // Map database format to interface format
+        const mappedCollections = collections.map((col: any) => ({
+          id: col.id,
+          date: col.date,
+          totalAmount: col.total_amount,
+          totalOrders: col.total_orders,
+          paymentMethods: col.payment_methods || { cash: 0, card: 0, upi: 0, other: 0 },
+          createdAt: col.created_at,
+          updatedAt: col.updated_at
+        }));
+        setDailyCollections(mappedCollections);
       } else {
         // Load sample daily collections
         const today = new Date().toISOString().split('T')[0];
