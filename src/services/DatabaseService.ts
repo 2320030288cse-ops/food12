@@ -118,6 +118,17 @@ export class DatabaseService {
     return !error;
   }
 
+  async deleteInventoryItem(id: string): Promise<boolean> {
+    if (!supabase) return false;
+    
+    const { error } = await supabase
+      .from('inventory_items')
+      .delete()
+      .eq('id', id);
+    
+    return !error;
+  }
+
   // Inventory Management
   async getInventoryItems(): Promise<InventoryItem[]> {
     if (!supabase || !this.restaurantId) return [];

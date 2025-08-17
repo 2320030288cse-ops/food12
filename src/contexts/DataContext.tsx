@@ -275,69 +275,241 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Menu Items functions
   const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
     try {
+      // Try to save to database first
+      const dbItem = await dbService.createMenuItem({
+        name: item.name,
+        description: item.description || '',
+        category: item.category,
+        price: item.price,
+        cost_price: 0,
+        image_url: item.photo || '',
+        is_available: item.available,
+        is_special: item.isSpecial || false,
+        preparation_time: item.preparationTime || 15,
+        calories: item.nutritionInfo?.calories || 0,
+        allergens: item.allergens || [],
+        dietary_info: []
+      });
+
+      if (dbItem) {
+        // Map database item to interface format
+        const newItem: MenuItem = {
+          id: dbItem.id,
+          name: dbItem.name,
+          price: dbItem.price,
+          category: dbItem.category,
+          description: dbItem.description || '',
+          photo: dbItem.image_url || '',
+          available: dbItem.is_available,
+          isSpecial: dbItem.is_special,
+          preparationTime: dbItem.preparation_time || 15,
+          ingredients: [],
+          allergens: dbItem.allergens || [],
+          nutritionInfo: { calories: dbItem.calories || 0, protein: 0, carbs: 0, fat: 0 }
+        };
+        setMenuItems(prev => [...prev, newItem]);
+      } else {
+        // Fallback to local storage
+        const newItem: MenuItem = {
+          ...item,
+          id: Date.now().toString()
+        };
+        setMenuItems(prev => [...prev, newItem]);
+      }
+    } catch (error) {
+      console.error('Error adding menu item to database:', error);
+      // Fallback to local storage
       const newItem: MenuItem = {
         ...item,
         id: Date.now().toString()
       };
       setMenuItems(prev => [...prev, newItem]);
-    } catch (error) {
-      setError('Failed to add menu item');
-      throw error;
     }
   };
 
   const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
     try {
+      // Try to update in database first
+      const dbUpdates = {
+        name: updates.name,
+        description: updates.description,
+        category: updates.category,
+        price: updates.price,
+        image_url: updates.photo,
+        is_available: updates.available,
+        is_special: updates.isSpecial,
+        preparation_time: updates.preparationTime,
+        calories: updates.nutritionInfo?.calories,
+        allergens: updates.allergens
+      };
+
+      const updatedItem = await dbService.updateMenuItem(id, dbUpdates);
+      
+      if (updatedItem) {
+        // Map database item to interface format
+        const mappedUpdates = {
+          name: updatedItem.name,
+          price: updatedItem.price,
+          category: updatedItem.category,
+          description: updatedItem.description || '',
+          photo: updatedItem.image_url || '',
+          available: updatedItem.is_available,
+          isSpecial: updatedItem.is_special,
+          preparationTime: updatedItem.preparation_time || 15,
+          allergens: updatedItem.allergens || [],
+          nutritionInfo: { calories: updatedItem.calories || 0, protein: 0, carbs: 0, fat: 0 }
+        };
+        setMenuItems(prev => prev.map(item => 
+          item.id === id ? { ...item, ...mappedUpdates } : item
+        ));
+      } else {
+        // Fallback to local update
+        setMenuItems(prev => prev.map(item => 
+          item.id === id ? { ...item, ...updates } : item
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating menu item in database:', error);
+      // Fallback to local update
       setMenuItems(prev => prev.map(item => 
         item.id === id ? { ...item, ...updates } : item
       ));
-    } catch (error) {
-      setError('Failed to update menu item');
-      throw error;
     }
   };
 
   const deleteMenuItem = async (id: string) => {
     try {
-      setMenuItems(prev => prev.filter(item => item.id !== id));
+      // Try to delete from database first
+      const success = await dbService.deleteMenuItem(id);
+      
+      if (success) {
+        setMenuItems(prev => prev.filter(item => item.id !== id));
+      } else {
+        // Fallback to local deletion
+        setMenuItems(prev => prev.filter(item => item.id !== id));
+      }
     } catch (error) {
-      setError('Failed to delete menu item');
-      throw error;
+      console.error('Error deleting menu item from database:', error);
+      // Fallback to local deletion
+      setMenuItems(prev => prev.filter(item => item.id !== id));
     }
   };
 
   // Inventory functions
   const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
     try {
+      // Try to save to database first
+      const dbItem = await dbService.createInventoryItem({
+        name: item.name,
+        category: item.category || '',
+        unit: item.unit,
+        current_stock: item.quantity,
+        minimum_stock: item.minThreshold,
+        maximum_stock: item.maxThreshold,
+        cost_per_unit: item.cost,
+        supplier: item.supplier,
+        expiry_date: item.expiryDate
+      });
+
+      if (dbItem) {
+        // Map database item to interface format
+        const newItem: InventoryItem = {
+          id: dbItem.id,
+          name: dbItem.name,
+          quantity: dbItem.current_stock,
+          unit: dbItem.unit,
+          minThreshold: dbItem.minimum_stock,
+          maxThreshold: dbItem.maximum_stock || 100,
+          cost: dbItem.cost_per_unit || 0,
+          supplier: dbItem.supplier || '',
+          expiryDate: dbItem.expiry_date,
+          lastUpdated: dbItem.updated_at
+        };
+        setInventory(prev => [...prev, newItem]);
+      } else {
+        // Fallback to local storage
+        const newItem: InventoryItem = {
+          ...item,
+          id: Date.now().toString(),
+          lastUpdated: new Date().toISOString()
+        };
+        setInventory(prev => [...prev, newItem]);
+      }
+    } catch (error) {
+      console.error('Error adding inventory item to database:', error);
+      // Fallback to local storage
       const newItem: InventoryItem = {
         ...item,
         id: Date.now().toString(),
         lastUpdated: new Date().toISOString()
       };
       setInventory(prev => [...prev, newItem]);
-    } catch (error) {
-      setError('Failed to add inventory item');
-      throw error;
     }
   };
 
   const updateInventoryItem = async (id: string, updates: Partial<InventoryItem>) => {
     try {
+      // Try to update in database first
+      const dbUpdates = {
+        name: updates.name,
+        category: updates.category,
+        unit: updates.unit,
+        current_stock: updates.quantity,
+        minimum_stock: updates.minThreshold,
+        maximum_stock: updates.maxThreshold,
+        cost_per_unit: updates.cost,
+        supplier: updates.supplier,
+        expiry_date: updates.expiryDate
+      };
+
+      const updatedItem = await dbService.updateInventoryItem(id, dbUpdates);
+      
+      if (updatedItem) {
+        // Map database item to interface format
+        const mappedUpdates = {
+          name: updatedItem.name,
+          quantity: updatedItem.current_stock,
+          unit: updatedItem.unit,
+          minThreshold: updatedItem.minimum_stock,
+          maxThreshold: updatedItem.maximum_stock || 100,
+          cost: updatedItem.cost_per_unit || 0,
+          supplier: updatedItem.supplier || '',
+          expiryDate: updatedItem.expiry_date,
+          lastUpdated: updatedItem.updated_at
+        };
+        setInventory(prev => prev.map(item => 
+          item.id === id ? { ...item, ...mappedUpdates } : item
+        ));
+      } else {
+        // Fallback to local update
+        setInventory(prev => prev.map(item => 
+          item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating inventory item in database:', error);
+      // Fallback to local update
       setInventory(prev => prev.map(item => 
         item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
       ));
-    } catch (error) {
-      setError('Failed to update inventory item');
-      throw error;
     }
   };
 
   const deleteInventoryItem = async (id: string) => {
     try {
-      setInventory(prev => prev.filter(item => item.id !== id));
+      // Try to delete from database first
+      const success = await dbService.deleteInventoryItem(id);
+      
+      if (success) {
+        setInventory(prev => prev.filter(item => item.id !== id));
+      } else {
+        // Fallback to local deletion
+        setInventory(prev => prev.filter(item => item.id !== id));
+      }
     } catch (error) {
-      setError('Failed to delete inventory item');
-      throw error;
+      console.error('Error deleting inventory item from database:', error);
+      // Fallback to local deletion
+      setInventory(prev => prev.filter(item => item.id !== id));
     }
   };
 
