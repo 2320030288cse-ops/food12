@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Moon, Sun, Lock, Mail } from 'lucide-react';
-import GSLogo from '../common/GSLogo';
+import { ChefHat, Moon, Sun, Lock, Mail } from 'lucide-react';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const LoginPage: React.FC = () => {
@@ -48,7 +47,10 @@ const LoginPage: React.FC = () => {
           <div className="text-center animate-slide-down">
             <div className="flex justify-center mb-4">
               <div className="relative">
-                <GSLogo size="xl" animated />
+                <div className={`p-6 rounded-full bg-gradient-to-r from-gs-gold to-gs-light-gold shadow-glow-gold animate-bounce-in`}>
+                  <ChefHat className="h-16 w-16 text-white" />
+                </div>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-gs-gold to-gs-light-gold opacity-50 animate-ping"></div>
               </div>
             </div>
             <h2 className={`text-5xl font-bold gradient-text animate-fade-in ${

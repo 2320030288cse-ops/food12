@@ -1,24 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { DatabaseService } from '../services/DatabaseService';
+import { supabase } from '../lib/supabase';
 
-// Types
 export interface MenuItem {
   id: string;
   name: string;
-  price: number;
   category: string;
-  description?: string;
-  image?: string;
+  price: number;
   available: boolean;
-  preparationTime?: number;
-  ingredients?: string[];
-  allergens?: string[];
-  nutritionInfo?: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  };
+  photo?: string;
+  isSpecial: boolean;
+  description?: string;
 }
 
 export interface InventoryItem {
@@ -26,89 +17,143 @@ export interface InventoryItem {
   name: string;
   quantity: number;
   unit: string;
-  minThreshold: number;
-  maxThreshold: number;
-  cost: number;
-  supplier?: string;
-  expiryDate?: string;
-  lastUpdated: string;
+  minQuantity: number;
 }
 
 export interface Table {
   id: string;
   number: number;
   capacity: number;
-  status: 'available' | 'occupied' | 'reserved' | 'cleaning';
-  currentOrder?: string;
+  status: 'available' | 'occupied' | 'reserved';
+  position?: { x: number; y: number };
+  shape?: 'round' | 'square' | 'rectangle';
+  orderStatus?: 'waiting' | 'preparing' | 'served' | 'billing';
   reservedBy?: string;
-  reservedTime?: string;
-  location?: string;
+  reservedTime?: Date;
+  currentOrderId?: string;
 }
 
-export interface Customer {
+export interface Reservation {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  tableId: string;
+  date: Date;
+  time: string;
+  people: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+}
+
+export interface Feedback {
+  id: string;
+  orderId: string;
+  foodRating: number;
+  serviceRating: number;
+  cleanlinessRating: number;
+  comment?: string;
+  date: Date;
+}
+
+export interface Recipe {
+  id: string;
+  menuItemId: string;
+  ingredients: { itemId: string; quantity: number }[];
+}
+
+export interface Combo {
   id: string;
   name: string;
+  items: { menuItemId: string; quantity: number }[];
+  price: number;
+  available: boolean;
+  description?: string;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  type: 'happy_hour' | 'combo' | 'discount';
+  startTime?: string;
+  endTime?: string;
+  discount?: number;
+  categories?: string[];
+  active: boolean;
+}
+
+export interface CustomerLoyalty {
+  id: string;
   phone: string;
-  email?: string;
-  loyaltyPoints: number;
-  preferences: {
-    dietaryRestrictions: string[];
+  points: number;
+  visits: number;
+  totalSpent: number;
+  lastVisit: Date;
+  preferences?: {
     favoriteItems: string[];
+    dietaryRestrictions: string[];
     spiceLevel: 'mild' | 'medium' | 'hot';
   };
-  orderHistory: string[];
-  createdAt: string;
+}
+
+export interface SMSTemplate {
+  id: string;
+  name: string;
+  type: 'order_confirmation' | 'payment_receipt' | 'loyalty_reward' | 'feedback_request';
+  template: string;
+  active: boolean;
+}
+
+export interface NotificationSettings {
+  id: string;
+  smsEnabled: boolean;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  templates: SMSTemplate[];
+}
+interface DataContextType {
+  menuItems: MenuItem[];
+  inventory: InventoryItem[];
+  tables: Table[];
+  reservations: Reservation[];
+  feedback: Feedback[];
+  dailyCollections: DailyCollection[];
+  recipes: Recipe[];
+  combos: Combo[];
+  promotions: Promotion[];
+  customerLoyalty: CustomerLoyalty[];
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => void;
+  updateMenuItem: (id: string, item: Partial<MenuItem>) => void;
+  deleteMenuItem: (id: string) => void;
+  addInventoryItem: (item: Omit<InventoryItem, 'id'>) => void;
+  updateInventoryItem: (id: string, item: Partial<InventoryItem>) => void;
+  addReservation: (reservation: Omit<Reservation, 'id'>) => void;
+  updateReservation: (id: string, reservation: Partial<Reservation>) => void;
+  addFeedback: (feedback: Omit<Feedback, 'id'>) => void;
+  updateTableStatus: (tableId: string, status: Table['status']) => void;
+  updateTablePosition: (tableId: string, position: { x: number; y: number }) => void;
+  updateTableOrderStatus: (tableId: string, orderStatus: Table['orderStatus']) => void;
+  blockTableForOrder: (tableId: string, orderId: string, customerName?: string) => void;
+  releaseTableAfterPayment: (tableId: string) => void;
+  reduceInventory: (itemName: string, quantity: number) => void;
+  reduceInventoryByRecipe: (menuItemId: string, quantity: number) => void;
+  addRecipe: (recipe: Omit<Recipe, 'id'>) => void;
+  addCombo: (combo: Omit<Combo, 'id'>) => void;
+  addPromotion: (promotion: Omit<Promotion, 'id'>) => void;
+  addCustomerLoyalty: (customer: Omit<CustomerLoyalty, 'id'>) => void;
+  updateCustomerLoyalty: (phone: string, points: number, spent: number) => void;
+  getPopularItems: () => MenuItem[];
+  getDailyCollections: () => Promise<DailyCollection[]>;
+  updateDailyCollection: (date: string, amount: number, paymentMethods: Record<string, number>) => Promise<void>;
 }
 
 export interface DailyCollection {
   id: string;
   date: string;
-  totalAmount: number;
-  totalOrders: number;
-  paymentMethods: {
-    cash: number;
-    card: number;
-    upi: number;
-    other: number;
-  };
-  createdAt: string;
-  updatedAt: string;
+  total_amount: number;
+  total_orders: number;
+  payment_methods: Record<string, number>;
+  created_at: string;
+  updated_at: string;
 }
-
-export interface DataContextType {
-  // Menu Items
-  menuItems: MenuItem[];
-  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
-  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
-  deleteMenuItem: (id: string) => Promise<void>;
-  
-  // Inventory
-  inventory: InventoryItem[];
-  addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => Promise<void>;
-  updateInventoryItem: (id: string, updates: Partial<InventoryItem>) => Promise<void>;
-  deleteInventoryItem: (id: string) => Promise<void>;
-  
-  // Tables
-  tables: Table[];
-  addTable: (table: Omit<Table, 'id'>) => Promise<void>;
-  updateTable: (id: string, updates: Partial<Table>) => Promise<void>;
-  deleteTable: (id: string) => Promise<void>;
-  
-  // Customers
-  customers: Customer[];
-  addCustomer: (customer: Omit<Customer, 'id' | 'createdAt'>) => Promise<void>;
-  updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
-  
-  // Daily Collections
-  dailyCollections: DailyCollection[];
-  getDailyCollections: () => DailyCollection[];
-  updateDailyCollection: (date: string, amount: number, paymentMethod: string) => Promise<void>;
-  
-  // Loading states
-  loading: boolean;
-  error: string | null;
-}
-
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const useData = () => {
@@ -119,544 +164,633 @@ export const useData = () => {
   return context;
 };
 
-interface DataProviderProps {
-  children: ReactNode;
-}
+const defaultMenuItems: MenuItem[] = [
+  {
+    id: '1',
+    name: 'Chicken Tikka Masala',
+    category: 'Main Course',
+    price: 299,
+    available: true,
+    photo: 'https://images.pexels.com/photos/2474658/pexels-photo-2474658.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: true,
+    description: 'Tender chicken in creamy tomato sauce'
+  },
+  {
+    id: '2',
+    name: 'Vegetable Biryani',
+    category: 'Main Course',
+    price: 249,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Aromatic basmati rice with vegetables'
+  },
+  {
+    id: '3',
+    name: 'Samosa',
+    category: 'Starter',
+    price: 49,
+    available: true,
+    photo: 'https://images.pexels.com/photos/14477797/pexels-photo-14477797.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Crispy pastry with spiced filling'
+  },
+  {
+    id: '4',
+    name: 'Gulab Jamun',
+    category: 'Dessert',
+    price: 89,
+    available: true,
+    photo: 'https://images.pexels.com/photos/4772874/pexels-photo-4772874.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Sweet milk balls in sugar syrup'
+  },
+  {
+    id: '5',
+    name: 'Butter Chicken',
+    category: 'Main Course',
+    price: 329,
+    available: true,
+    photo: 'https://images.pexels.com/photos/2338407/pexels-photo-2338407.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: true,
+    description: 'Rich and creamy chicken curry'
+  },
+  {
+    id: '6',
+    name: 'Paneer Butter Masala',
+    category: 'Main Course',
+    price: 279,
+    available: true,
+    photo: 'https://images.pexels.com/photos/4393021/pexels-photo-4393021.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Cottage cheese in rich tomato gravy'
+  },
+  {
+    id: '7',
+    name: 'Chicken Wings',
+    category: 'Starter',
+    price: 199,
+    available: true,
+    photo: 'https://images.pexels.com/photos/60616/fried-chicken-chicken-fried-crunchy-60616.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Spicy grilled chicken wings'
+  },
+  {
+    id: '8',
+    name: 'Paneer Tikka',
+    category: 'Starter',
+    price: 179,
+    available: true,
+    photo: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Grilled cottage cheese with spices'
+  },
+  {
+    id: '9',
+    name: 'Fish Curry',
+    category: 'Main Course',
+    price: 349,
+    available: true,
+    photo: 'https://images.pexels.com/photos/725991/pexels-photo-725991.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: true,
+    description: 'Fresh fish in coconut curry'
+  },
+  {
+    id: '10',
+    name: 'Mutton Biryani',
+    category: 'Main Course',
+    price: 399,
+    available: true,
+    photo: 'https://images.pexels.com/photos/11220209/pexels-photo-11220209.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: true,
+    description: 'Aromatic rice with tender mutton'
+  },
+  {
+    id: '11',
+    name: 'Naan Bread',
+    category: 'Bread',
+    price: 45,
+    available: true,
+    photo: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Fresh baked Indian bread'
+  },
+  {
+    id: '12',
+    name: 'Garlic Naan',
+    category: 'Bread',
+    price: 55,
+    available: true,
+    photo: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Naan bread with garlic and herbs'
+  },
+  {
+    id: '13',
+    name: 'Dal Tadka',
+    category: 'Main Course',
+    price: 149,
+    available: true,
+    photo: 'https://images.pexels.com/photos/5560763/pexels-photo-5560763.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Yellow lentils with spices'
+  },
+  {
+    id: '14',
+    name: 'Chicken Soup',
+    category: 'Soup',
+    price: 99,
+    available: true,
+    photo: 'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Hot and spicy chicken soup'
+  },
+  {
+    id: '15',
+    name: 'Tomato Soup',
+    category: 'Soup',
+    price: 79,
+    available: true,
+    photo: 'https://images.pexels.com/photos/539451/pexels-photo-539451.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Fresh tomato soup with herbs'
+  },
+  {
+    id: '16',
+    name: 'Ice Cream',
+    category: 'Dessert',
+    price: 69,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1362534/pexels-photo-1362534.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Vanilla ice cream with toppings'
+  },
+  {
+    id: '17',
+    name: 'Kulfi',
+    category: 'Dessert',
+    price: 79,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1362534/pexels-photo-1362534.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Traditional Indian ice cream'
+  },
+  {
+    id: '18',
+    name: 'Mango Lassi',
+    category: 'Beverage',
+    price: 89,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Fresh mango yogurt drink'
+  },
+  {
+    id: '19',
+    name: 'Fresh Lime Soda',
+    category: 'Beverage',
+    price: 49,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Refreshing lime soda'
+  },
+  {
+    id: '20',
+    name: 'Masala Chai',
+    category: 'Beverage',
+    price: 29,
+    available: true,
+    photo: 'https://images.pexels.com/photos/1435735/pexels-photo-1435735.jpeg?auto=compress&cs=tinysrgb&w=400',
+    isSpecial: false,
+    description: 'Traditional spiced tea'
+  }
+];
 
-export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  // State
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [tables, setTables] = useState<Table[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+const defaultInventory: InventoryItem[] = [
+  { id: '1', name: 'Chicken', quantity: 50, unit: 'kg', minQuantity: 10 },
+  { id: '2', name: 'Rice', quantity: 100, unit: 'kg', minQuantity: 20 },
+  { id: '3', name: 'Tomatoes', quantity: 25, unit: 'kg', minQuantity: 5 },
+  { id: '4', name: 'Onions', quantity: 30, unit: 'kg', minQuantity: 8 },
+];
+
+const defaultTables: Table[] = [
+  { id: '1', number: 1, capacity: 4, status: 'available', position: { x: 100, y: 100 }, shape: 'round' },
+  { id: '2', number: 2, capacity: 2, status: 'available', position: { x: 300, y: 100 }, shape: 'square' },
+  { id: '3', number: 3, capacity: 6, status: 'available', position: { x: 500, y: 100 }, shape: 'rectangle' },
+  { id: '4', number: 4, capacity: 4, status: 'available', position: { x: 100, y: 300 }, shape: 'round' },
+  { id: '5', number: 5, capacity: 8, status: 'available', position: { x: 300, y: 300 }, shape: 'rectangle' },
+];
+
+export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(defaultMenuItems);
+  const [inventory, setInventory] = useState<InventoryItem[]>(defaultInventory);
+  const [tables, setTables] = useState<Table[]>(defaultTables);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [dailyCollections, setDailyCollections] = useState<DailyCollection[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [customerLoyalty, setCustomerLoyalty] = useState<CustomerLoyalty[]>([]);
 
-  // Initialize data
   useEffect(() => {
-    loadInitialData();
+    const savedData = localStorage.getItem('gs_data');
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      setMenuItems(data.menuItems || defaultMenuItems);
+      setInventory(data.inventory || defaultInventory);
+      setTables(data.tables || defaultTables);
+      setReservations(data.reservations || []);
+      setFeedback(data.feedback || []);
+      setDailyCollections(data.dailyCollections || []);
+      setRecipes(data.recipes || []);
+      setCombos(data.combos || []);
+      setPromotions(data.promotions || []);
+      setCustomerLoyalty(data.customerLoyalty || []);
+    }
+    
+    // Load daily collections from database
+    loadDailyCollections();
   }, []);
 
-  const loadInitialData = async () => {
-    setLoading(true);
-    try {
-      // Load sample data if database is not available
-      await loadSampleData();
-      await loadDailyCollections();
-    } catch (err) {
-      setError('Failed to load initial data');
-      console.error('Error loading initial data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSampleData = async () => {
-    // Sample menu items
-    const sampleMenuItems: MenuItem[] = [
-      {
-        id: '1',
-        name: 'Butter Chicken',
-        price: 320,
-        category: 'Main Course',
-        description: 'Creamy tomato-based curry with tender chicken',
-        available: true,
-        preparationTime: 25,
-        ingredients: ['chicken', 'tomato', 'cream', 'spices'],
-        allergens: ['dairy'],
-        nutritionInfo: { calories: 450, protein: 35, carbs: 15, fat: 28 }
-      },
-      {
-        id: '2',
-        name: 'Paneer Tikka',
-        price: 280,
-        category: 'Appetizer',
-        description: 'Grilled cottage cheese with aromatic spices',
-        available: true,
-        preparationTime: 15,
-        ingredients: ['paneer', 'yogurt', 'spices'],
-        allergens: ['dairy'],
-        nutritionInfo: { calories: 320, protein: 18, carbs: 12, fat: 22 }
-      },
-      {
-        id: '3',
-        name: 'Biryani',
-        price: 350,
-        category: 'Main Course',
-        description: 'Fragrant basmati rice with spiced meat',
-        available: true,
-        preparationTime: 35,
-        ingredients: ['basmati rice', 'chicken', 'saffron', 'spices'],
-        allergens: [],
-        nutritionInfo: { calories: 520, protein: 28, carbs: 65, fat: 18 }
-      }
-    ];
-
-    // Sample inventory
-    const sampleInventory: InventoryItem[] = [
-      {
-        id: '1',
-        name: 'Basmati Rice',
-        quantity: 50,
-        unit: 'kg',
-        minThreshold: 10,
-        maxThreshold: 100,
-        cost: 120,
-        supplier: 'Local Supplier',
-        lastUpdated: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Chicken',
-        quantity: 25,
-        unit: 'kg',
-        minThreshold: 5,
-        maxThreshold: 50,
-        cost: 280,
-        supplier: 'Fresh Meat Co.',
-        expiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-        lastUpdated: new Date().toISOString()
-      }
-    ];
-
-    // Sample tables
-    const sampleTables: Table[] = [
-      { id: '1', number: 1, capacity: 4, status: 'available', location: 'Main Hall' },
-      { id: '2', number: 2, capacity: 2, status: 'occupied', location: 'Main Hall' },
-      { id: '3', number: 3, capacity: 6, status: 'available', location: 'Private Room' },
-      { id: '4', number: 4, capacity: 4, status: 'cleaning', location: 'Main Hall' }
-    ];
-
-    setMenuItems(sampleMenuItems);
-    setInventory(sampleInventory);
-    setTables(sampleTables);
-  };
+  useEffect(() => {
+    const data = {
+      menuItems,
+      inventory,
+      tables,
+      reservations,
+      feedback,
+      dailyCollections,
+      recipes,
+      combos,
+      promotions,
+      customerLoyalty
+    };
+    localStorage.setItem('gs_data', JSON.stringify(data));
+  }, [menuItems, inventory, tables, reservations, feedback, dailyCollections, recipes, combos, promotions, customerLoyalty]);
 
   const loadDailyCollections = async () => {
     try {
-      // Try to load from database first, fallback to local storage
-      const collections = await dbService.getDailyCollections();
-      if (collections && collections.length > 0) {
-        // Map database format to interface format
-        const mappedCollections = collections.map((col: any) => ({
-          id: col.id,
-          date: col.date,
-          totalAmount: col.total_amount,
-          totalOrders: col.total_orders,
-          paymentMethods: col.payment_methods || { cash: 0, card: 0, upi: 0, other: 0 },
-          createdAt: col.created_at,
-          updatedAt: col.updated_at
-        }));
-        setDailyCollections(mappedCollections);
+      if (!supabase) {
+        console.log('Supabase not configured, using local storage');
+        return;
+      }
+      const { data, error } = await supabase
+        .from('daily_collections')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(30);
+      
+      if (error) throw error;
+      if (data) setDailyCollections(data);
+    } catch (error) {
+      console.log('Using local storage for daily collections');
+    }
+  };
+  const addMenuItem = (item: Omit<MenuItem, 'id'>) => {
+    const newItem: MenuItem = {
+      ...item,
+      id: Date.now().toString()
+    };
+    setMenuItems(prev => [...prev, newItem]);
+  };
+
+  const updateMenuItem = (id: string, item: Partial<MenuItem>) => {
+    setMenuItems(prev => prev.map(i => i.id === id ? { ...i, ...item } : i));
+  };
+
+  const deleteMenuItem = (id: string) => {
+    setMenuItems(prev => prev.filter(i => i.id !== id));
+  };
+
+  const addInventoryItem = (item: Omit<InventoryItem, 'id'>) => {
+    const newItem: InventoryItem = {
+      ...item,
+      id: Date.now().toString()
+    };
+    setInventory(prev => [...prev, newItem]);
+  };
+
+  const updateInventoryItem = (id: string, item: Partial<InventoryItem>) => {
+    setInventory(prev => prev.map(i => i.id === id ? { ...i, ...item } : i));
+  };
+
+  const addReservation = (reservation: Omit<Reservation, 'id'>) => {
+    const newReservation: Reservation = {
+      ...reservation,
+      id: Date.now().toString()
+    };
+    setReservations(prev => [...prev, newReservation]);
+  };
+
+  const updateReservation = (id: string, reservation: Partial<Reservation>) => {
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, ...reservation } : r));
+  };
+
+  const addFeedback = (feedbackData: Omit<Feedback, 'id'>) => {
+    const newFeedback: Feedback = {
+      ...feedbackData,
+      id: Date.now().toString()
+    };
+    setFeedback(prev => [...prev, newFeedback]);
+  };
+
+  const updateTableStatus = (tableId: string, status: Table['status']) => {
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, status } : t));
+  };
+
+  const updateTablePosition = (tableId: string, position: { x: number; y: number }) => {
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, position } : t));
+  };
+
+  const updateTableOrderStatus = (tableId: string, orderStatus: Table['orderStatus']) => {
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, orderStatus } : t));
+  };
+  const blockTableForOrder = (tableId: string, orderId: string, customerName?: string) => {
+    setTables(prev => prev.map(t => 
+      t.id === tableId 
+        ? { 
+            ...t, 
+            status: 'occupied' as const,
+            orderStatus: 'waiting' as const,
+            currentOrderId: orderId,
+            reservedBy: customerName || `Order #${orderId.slice(-6)}`,
+            reservedTime: new Date()
+          } 
+        : t
+    ));
+  };
+  const reduceInventory = (itemName: string, quantity: number) => {
+    setInventory(prev => prev.map(item => 
+      item.name.toLowerCase() === itemName.toLowerCase() 
+        ? { ...item, quantity: Math.max(0, item.quantity - quantity) }
+        : item
+    ));
+  };
+
+  const reduceInventoryByRecipe = (menuItemId: string, quantity: number) => {
+    const recipe = recipes.find(r => r.menuItemId === menuItemId);
+    if (recipe) {
+      recipe.ingredients.forEach(ingredient => {
+        const inventoryItem = inventory.find(inv => inv.id === ingredient.itemId);
+        if (inventoryItem) {
+          const totalQuantityNeeded = ingredient.quantity * quantity;
+          reduceInventory(inventoryItem.name, totalQuantityNeeded);
+        }
+      });
+    }
+  };
+
+  const addRecipe = (recipe: Omit<Recipe, 'id'>) => {
+    const newRecipe: Recipe = {
+      ...recipe,
+      id: Date.now().toString()
+    };
+    setRecipes(prev => [...prev, newRecipe]);
+  };
+
+  const addCombo = (combo: Omit<Combo, 'id'>) => {
+    const newCombo: Combo = {
+      ...combo,
+      id: Date.now().toString()
+    };
+    setCombos(prev => [...prev, newCombo]);
+  };
+
+  const addPromotion = (promotion: Omit<Promotion, 'id'>) => {
+    const newPromotion: Promotion = {
+      ...promotion,
+      id: Date.now().toString()
+    };
+    setPromotions(prev => [...prev, newPromotion]);
+  };
+
+  const addCustomerLoyalty = (customer: Omit<CustomerLoyalty, 'id'>) => {
+    const newCustomer: CustomerLoyalty = {
+      ...customer,
+      id: Date.now().toString()
+    };
+    setCustomerLoyalty(prev => [...prev, newCustomer]);
+  };
+
+  const updateCustomerLoyalty = (phone: string, points: number, spent: number) => {
+    setCustomerLoyalty(prev => {
+      const existing = prev.find(c => c.phone === phone);
+      if (existing) {
+        return prev.map(c => 
+          c.phone === phone 
+            ? { 
+                ...c, 
+                points: c.points + points, 
+                visits: c.visits + 1,
+                totalSpent: c.totalSpent + spent,
+                lastVisit: new Date()
+              }
+            : c
+        );
       } else {
-        // Load sample daily collections
+        return [...prev, {
+          id: Date.now().toString(),
+          phone,
+          points,
+          visits: 1,
+          totalSpent: spent,
+          lastVisit: new Date()
+        }];
+      }
+    });
+  };
+
+  const getPopularItems = (): MenuItem[] => {
+    // This would typically be based on order history
+    // For now, return special items and first few items
+    return menuItems
+      .filter(item => item.isSpecial || item.available)
+      .slice(0, 8);
+  };
+  const getDailyCollections = async (): Promise<DailyCollection[]> => {
+    try {
+      if (!supabase) {
+        console.log('Supabase not configured, using local storage');
+        return dailyCollections;
+      }
+      const { data, error } = await supabase
+        .from('daily_collections')
+        .select('*')
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.log('Using local storage for daily collections');
+      return dailyCollections;
+    }
+  };
+  const releaseTableAfterPayment = (tableId: string) => {
+    setTables(prev => prev.map(t => 
+      t.id === tableId 
+        ? { 
+            ...t, 
+            status: 'available' as const,
+            reservedBy: undefined,
+            reservedTime: undefined
+          } 
+        : t
+    ));
+  };
+  const updateDailyCollection = async (date: string, amount: number, paymentMethods: Record<string, number>) => {
+    try {
+      if (!supabase) {
+        console.log('Supabase not configured, using local storage fallback');
+        // Fallback to local storage logic
         const today = new Date().toISOString().split('T')[0];
-        const sampleCollections: DailyCollection[] = [
-          {
-            id: '1',
-            date: today,
-            totalAmount: 15420,
-            totalOrders: 45,
-            paymentMethods: { cash: 5420, card: 6000, upi: 4000, other: 0 },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+        setDailyCollections(prev => {
+          const existing = prev.find(dc => dc.date === date);
+          if (existing) {
+            const updatedPaymentMethods = { ...existing.payment_methods };
+            Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
+              updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
+            });
+            
+            return prev.map(dc => 
+              dc.date === date 
+                ? {
+                    ...dc,
+                    total_amount: dc.total_amount + amount,
+                    total_orders: dc.total_orders + 1,
+                    payment_methods: updatedPaymentMethods,
+                    updated_at: new Date().toISOString()
+                  }
+                : dc
+            );
+          } else {
+            return [...prev, {
+              id: Date.now().toString(),
+              date,
+              total_amount: amount,
+              total_orders: 1,
+              payment_methods: paymentMethods,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }];
           }
-        ];
-        setDailyCollections(sampleCollections);
+        });
+        return;
       }
-    } catch (error) {
-      console.error('Error loading daily collections:', error);
-      // Fallback to empty array
-      setDailyCollections([]);
-    }
-  };
+      
+      const { data: existing, error: fetchError } = await supabase
+        .from('daily_collections')
+        .select('*')
+        .eq('date', date)
+        .single();
+      if (existing) {
+        // Update existing record
+        const updatedPaymentMethods = { ...existing.payment_methods };
+        Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
+          updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
+        });
 
-  // Menu Items functions
-  const addMenuItem = async (item: Omit<MenuItem, 'id'>) => {
-    try {
-      // Try to save to database first
-      const dbItem = await dbService.createMenuItem({
-        name: item.name,
-        description: item.description || '',
-        category: item.category,
-        price: item.price,
-        cost_price: 0,
-        image_url: item.photo || '',
-        is_available: item.available,
-        is_special: item.isSpecial || false,
-        preparation_time: item.preparationTime || 15,
-        calories: item.nutritionInfo?.calories || 0,
-        allergens: item.allergens || [],
-        dietary_info: []
-      });
-
-      if (dbItem) {
-        // Map database item to interface format
-        const newItem: MenuItem = {
-          id: dbItem.id,
-          name: dbItem.name,
-          price: dbItem.price,
-          category: dbItem.category,
-          description: dbItem.description || '',
-          photo: dbItem.image_url || '',
-          available: dbItem.is_available,
-          isSpecial: dbItem.is_special,
-          preparationTime: dbItem.preparation_time || 15,
-          ingredients: [],
-          allergens: dbItem.allergens || [],
-          nutritionInfo: { calories: dbItem.calories || 0, protein: 0, carbs: 0, fat: 0 }
-        };
-        setMenuItems(prev => [...prev, newItem]);
+        const { error: updateError } = await supabase
+          .from('daily_collections')
+          .update({
+            total_amount: existing.total_amount + amount,
+            total_orders: existing.total_orders + 1,
+            payment_methods: updatedPaymentMethods,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id);
+        if (updateError) throw updateError;
       } else {
-        // Fallback to local storage
-        const newItem: MenuItem = {
-          ...item,
-          id: Date.now().toString()
-        };
-        setMenuItems(prev => [...prev, newItem]);
+        // Create new record
+        const { error: insertError } = await supabase
+          .from('daily_collections')
+          .insert({
+            date,
+            total_amount: amount,
+            total_orders: 1,
+            payment_methods: paymentMethods,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        if (insertError) throw insertError;
       }
+      // Refresh local data
+      await loadDailyCollections();
     } catch (error) {
-      console.error('Error adding menu item to database:', error);
+      console.log('Using local storage for daily collections');
+      
       // Fallback to local storage
-      const newItem: MenuItem = {
-        ...item,
-        id: Date.now().toString()
-      };
-      setMenuItems(prev => [...prev, newItem]);
-    }
-  };
-
-  const updateMenuItem = async (id: string, updates: Partial<MenuItem>) => {
-    try {
-      // Try to update in database first
-      const dbUpdates = {
-        name: updates.name,
-        description: updates.description,
-        category: updates.category,
-        price: updates.price,
-        image_url: updates.photo,
-        is_available: updates.available,
-        is_special: updates.isSpecial,
-        preparation_time: updates.preparationTime,
-        calories: updates.nutritionInfo?.calories,
-        allergens: updates.allergens
-      };
-
-      const updatedItem = await dbService.updateMenuItem(id, dbUpdates);
-      
-      if (updatedItem) {
-        // Map database item to interface format
-        const mappedUpdates = {
-          name: updatedItem.name,
-          price: updatedItem.price,
-          category: updatedItem.category,
-          description: updatedItem.description || '',
-          photo: updatedItem.image_url || '',
-          available: updatedItem.is_available,
-          isSpecial: updatedItem.is_special,
-          preparationTime: updatedItem.preparation_time || 15,
-          allergens: updatedItem.allergens || [],
-          nutritionInfo: { calories: updatedItem.calories || 0, protein: 0, carbs: 0, fat: 0 }
-        };
-        setMenuItems(prev => prev.map(item => 
-          item.id === id ? { ...item, ...mappedUpdates } : item
-        ));
-      } else {
-        // Fallback to local update
-        setMenuItems(prev => prev.map(item => 
-          item.id === id ? { ...item, ...updates } : item
-        ));
-      }
-    } catch (error) {
-      console.error('Error updating menu item in database:', error);
-      // Fallback to local update
-      setMenuItems(prev => prev.map(item => 
-        item.id === id ? { ...item, ...updates } : item
-      ));
-    }
-  };
-
-  const deleteMenuItem = async (id: string) => {
-    try {
-      // Try to delete from database first
-      const success = await dbService.deleteMenuItem(id);
-      
-      if (success) {
-        setMenuItems(prev => prev.filter(item => item.id !== id));
-      } else {
-        // Fallback to local deletion
-        setMenuItems(prev => prev.filter(item => item.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting menu item from database:', error);
-      // Fallback to local deletion
-      setMenuItems(prev => prev.filter(item => item.id !== id));
-    }
-  };
-
-  // Inventory functions
-  const addInventoryItem = async (item: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
-    try {
-      // Try to save to database first
-      const dbItem = await dbService.createInventoryItem({
-        name: item.name,
-        category: item.category || '',
-        unit: item.unit,
-        current_stock: item.quantity,
-        minimum_stock: item.minThreshold,
-        maximum_stock: item.maxThreshold,
-        cost_per_unit: item.cost,
-        supplier: item.supplier,
-        expiry_date: item.expiryDate
+      const today = new Date().toISOString().split('T')[0];
+      setDailyCollections(prev => {
+        const existing = prev.find(dc => dc.date === date);
+        if (existing) {
+          const updatedPaymentMethods = { ...existing.payment_methods };
+          Object.entries(paymentMethods).forEach(([method, methodAmount]) => {
+            updatedPaymentMethods[method] = (updatedPaymentMethods[method] || 0) + methodAmount;
+          });
+          
+          return prev.map(dc => 
+            dc.date === date 
+              ? {
+                  ...dc,
+                  total_amount: dc.total_amount + amount,
+                  total_orders: dc.total_orders + 1,
+                  payment_methods: updatedPaymentMethods,
+                  updated_at: new Date().toISOString()
+                }
+              : dc
+          );
+        } else {
+          return [...prev, {
+            id: Date.now().toString(),
+            date,
+            total_amount: amount,
+            total_orders: 1,
+            payment_methods: paymentMethods,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }];
+        }
       });
-
-      if (dbItem) {
-        // Map database item to interface format
-        const newItem: InventoryItem = {
-          id: dbItem.id,
-          name: dbItem.name,
-          quantity: dbItem.current_stock,
-          unit: dbItem.unit,
-          minThreshold: dbItem.minimum_stock,
-          maxThreshold: dbItem.maximum_stock || 100,
-          cost: dbItem.cost_per_unit || 0,
-          supplier: dbItem.supplier || '',
-          expiryDate: dbItem.expiry_date,
-          lastUpdated: dbItem.updated_at
-        };
-        setInventory(prev => [...prev, newItem]);
-      } else {
-        // Fallback to local storage
-        const newItem: InventoryItem = {
-          ...item,
-          id: Date.now().toString(),
-          lastUpdated: new Date().toISOString()
-        };
-        setInventory(prev => [...prev, newItem]);
-      }
-    } catch (error) {
-      console.error('Error adding inventory item to database:', error);
-      // Fallback to local storage
-      const newItem: InventoryItem = {
-        ...item,
-        id: Date.now().toString(),
-        lastUpdated: new Date().toISOString()
-      };
-      setInventory(prev => [...prev, newItem]);
     }
   };
-
-  const updateInventoryItem = async (id: string, updates: Partial<InventoryItem>) => {
-    try {
-      // Try to update in database first
-      const dbUpdates = {
-        name: updates.name,
-        category: updates.category,
-        unit: updates.unit,
-        current_stock: updates.quantity,
-        minimum_stock: updates.minThreshold,
-        maximum_stock: updates.maxThreshold,
-        cost_per_unit: updates.cost,
-        supplier: updates.supplier,
-        expiry_date: updates.expiryDate
-      };
-
-      const updatedItem = await dbService.updateInventoryItem(id, dbUpdates);
-      
-      if (updatedItem) {
-        // Map database item to interface format
-        const mappedUpdates = {
-          name: updatedItem.name,
-          quantity: updatedItem.current_stock,
-          unit: updatedItem.unit,
-          minThreshold: updatedItem.minimum_stock,
-          maxThreshold: updatedItem.maximum_stock || 100,
-          cost: updatedItem.cost_per_unit || 0,
-          supplier: updatedItem.supplier || '',
-          expiryDate: updatedItem.expiry_date,
-          lastUpdated: updatedItem.updated_at
-        };
-        setInventory(prev => prev.map(item => 
-          item.id === id ? { ...item, ...mappedUpdates } : item
-        ));
-      } else {
-        // Fallback to local update
-        setInventory(prev => prev.map(item => 
-          item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
-        ));
-      }
-    } catch (error) {
-      console.error('Error updating inventory item in database:', error);
-      // Fallback to local update
-      setInventory(prev => prev.map(item => 
-        item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
-      ));
-    }
-  };
-
-  const deleteInventoryItem = async (id: string) => {
-    try {
-      // Try to delete from database first
-      const success = await dbService.deleteInventoryItem(id);
-      
-      if (success) {
-        setInventory(prev => prev.filter(item => item.id !== id));
-      } else {
-        // Fallback to local deletion
-        setInventory(prev => prev.filter(item => item.id !== id));
-      }
-    } catch (error) {
-      console.error('Error deleting inventory item from database:', error);
-      // Fallback to local deletion
-      setInventory(prev => prev.filter(item => item.id !== id));
-    }
-  };
-
-  // Table functions
-  const addTable = async (table: Omit<Table, 'id'>) => {
-    try {
-      const newTable: Table = {
-        ...table,
-        id: Date.now().toString()
-      };
-      setTables(prev => [...prev, newTable]);
-    } catch (error) {
-      setError('Failed to add table');
-      throw error;
-    }
-  };
-
-  const updateTable = async (id: string, updates: Partial<Table>) => {
-    try {
-      setTables(prev => prev.map(table => 
-        table.id === id ? { ...table, ...updates } : table
-      ));
-    } catch (error) {
-      setError('Failed to update table');
-      throw error;
-    }
-  };
-
-  const deleteTable = async (id: string) => {
-    try {
-      setTables(prev => prev.filter(table => table.id !== id));
-    } catch (error) {
-      setError('Failed to delete table');
-      throw error;
-    }
-  };
-
-  // Customer functions
-  const addCustomer = async (customer: Omit<Customer, 'id' | 'createdAt'>) => {
-    try {
-      const newCustomer: Customer = {
-        ...customer,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-      };
-      setCustomers(prev => [...prev, newCustomer]);
-    } catch (error) {
-      setError('Failed to add customer');
-      throw error;
-    }
-  };
-
-  const updateCustomer = async (id: string, updates: Partial<Customer>) => {
-    try {
-      setCustomers(prev => prev.map(customer => 
-        customer.id === id ? { ...customer, ...updates } : customer
-      ));
-    } catch (error) {
-      setError('Failed to update customer');
-      throw error;
-    }
-  };
-
-  // Daily Collections functions
-  const getDailyCollections = () => {
-    return dailyCollections;
-  };
-
-  const updateDailyCollection = async (date: string, amount: number, paymentMethod: string) => {
-    try {
-      const existingCollection = dailyCollections.find(c => c.date === date);
-      
-      if (existingCollection) {
-        const updatedCollection = {
-          ...existingCollection,
-          totalAmount: existingCollection.totalAmount + amount,
-          totalOrders: existingCollection.totalOrders + 1,
-          paymentMethods: {
-            ...existingCollection.paymentMethods,
-            [paymentMethod]: (existingCollection.paymentMethods[paymentMethod as keyof typeof existingCollection.paymentMethods] || 0) + amount
-          },
-          updatedAt: new Date().toISOString()
-        };
-        
-        setDailyCollections(prev => prev.map(c => 
-          c.date === date ? updatedCollection : c
-        ));
-      } else {
-        const newCollection: DailyCollection = {
-          id: Date.now().toString(),
-          date,
-          totalAmount: amount,
-          totalOrders: 1,
-          paymentMethods: {
-            cash: paymentMethod === 'cash' ? amount : 0,
-            card: paymentMethod === 'card' ? amount : 0,
-            upi: paymentMethod === 'upi' ? amount : 0,
-            other: paymentMethod === 'other' ? amount : 0
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        setDailyCollections(prev => [...prev, newCollection]);
-      }
-    } catch (error) {
-      setError('Failed to update daily collection');
-      throw error;
-    }
-  };
-
-  const value: DataContextType = {
-    // Menu Items
-    menuItems,
-    addMenuItem,
-    updateMenuItem,
-    deleteMenuItem,
-    
-    // Inventory
-    inventory,
-    addInventoryItem,
-    updateInventoryItem,
-    deleteInventoryItem,
-    
-    // Tables
-    tables,
-    addTable,
-    updateTable,
-    deleteTable,
-    
-    // Customers
-    customers,
-    addCustomer,
-    updateCustomer,
-    
-    // Daily Collections
-    dailyCollections,
-    getDailyCollections,
-    updateDailyCollection,
-    
-    // Loading states
-    loading,
-    error
-  };
-
   return (
-    <DataContext.Provider value={value}>
+    <DataContext.Provider value={{
+      menuItems,
+      inventory,
+      tables,
+      reservations,
+      feedback,
+      dailyCollections,
+      recipes,
+      combos,
+      promotions,
+      customerLoyalty,
+      addMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
+      addInventoryItem,
+      updateInventoryItem,
+      addReservation,
+      updateReservation,
+      addFeedback,
+      updateTableStatus,
+      updateTablePosition,
+      updateTableOrderStatus,
+      blockTableForOrder,
+      releaseTableAfterPayment,
+      reduceInventory,
+      reduceInventoryByRecipe,
+      addRecipe,
+      addCombo,
+      addPromotion,
+      addCustomerLoyalty,
+      updateCustomerLoyalty,
+      getPopularItems,
+      getDailyCollections,
+      updateDailyCollection
+    }}>
       {children}
     </DataContext.Provider>
   );
